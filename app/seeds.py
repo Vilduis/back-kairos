@@ -110,7 +110,7 @@ def seed_default_admins(db: Session) -> dict:
             "email": os.getenv("ADMIN_KETY_EMAIL", "katy@gmail.com"),
         },
     ]
-    password = os.getenv("ADMIN_PASSWORD", "123456")
+    password = os.getenv("ADMIN_PASSWORD", "#KV202502")
 
     results = []
     for adm in admins:
