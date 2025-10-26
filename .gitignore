@@ -1,4 +1,6 @@
-back_kairos/.env
-back_kairos/.venv/
-**/__pycache__/
-**/*.pyc
+# Backend ignores
+.env
+.env.local
+.venv/
+__pycache__/
+*.pyc
