@@ -1,0 +1,4 @@
+back_kairos/.env
+back_kairos/.venv/
+**/__pycache__/
+**/*.pyc
