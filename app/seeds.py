@@ -4,10 +4,17 @@ from .security import get_password_hash
 
 
 def seed_riasec_questions(db: Session) -> dict:
+    # Escala Likert estándar (acuerdo) para RIASEC guiado
     scale_options = {
         "scale_min": 1,
         "scale_max": 5,
-        "anchors": {"1": "Totalmente en desacuerdo", "2": "En desacuerdo", "3": "Neutral", "4": "De acuerdo", "5": "Totalmente de acuerdo"},
+        "anchors": {
+            "1": "Totalmente en desacuerdo",
+            "2": "En desacuerdo",
+            "3": "Neutral",
+            "4": "De acuerdo",
+            "5": "Totalmente de acuerdo",
+        },
     }
     validation = {"required": True, "allowed_range": [1, 5], "integer": True}
     riasec_items = {
@@ -74,8 +81,50 @@ def seed_riasec_questions(db: Session) -> dict:
                 .first()
             )
             if existing:
-                skipped += 1
-                continue
+                # Si la pregunta ya existe, aseguramos que tenga el tipo y anchors correctos
+                # Sin cambiar el display_order original
+                try:
+                    updated = False
+                    if getattr(existing, "question_type", None) != "scale":
+                        existing.question_type = "scale"
+                        updated = True
+                    # Asegurar categoría consistente (riasec_X)
+                    expected_cat = f"riasec_{cat}"
+                    if getattr(existing, "category", None) != expected_cat:
+                        existing.category = expected_cat
+                        updated = True
+                    # Normalizar opciones/anchors
+                    opts = getattr(existing, "options", {}) or {}
+                    anchors = (opts.get("anchors") or {})
+                    # Si faltan claves 2,3,4 o los textos no coinciden, sobreescribimos anchors
+                    expected_anchors = scale_options["anchors"]
+                    def _anchors_match(a: dict, b: dict) -> bool:
+                        try:
+                            return all(str(k) in a and str(a[str(k)]) == str(v) for k, v in b.items())
+                        except Exception:
+                            return False
+                    if not _anchors_match(anchors, expected_anchors):
+                        opts["anchors"] = expected_anchors
+                        updated = True
+                    # Asegurar rango 1-5
+                    if opts.get("scale_min") != scale_options["scale_min"] or opts.get("scale_max") != scale_options["scale_max"]:
+                        opts["scale_min"] = scale_options["scale_min"]
+                        opts["scale_max"] = scale_options["scale_max"]
+                        updated = True
+                    existing.options = opts
+                    # Validación
+                    rules = getattr(existing, "validation_rules", {}) or {}
+                    if rules.get("allowed_range") != validation["allowed_range"] or rules.get("integer") != validation["integer"]:
+                        existing.validation_rules = validation
+                        updated = True
+                    if updated:
+                        skipped += 1  # contamos como skipped (no insert) pero se actualizó
+                    else:
+                        skipped += 1
+                    continue
+                except Exception:
+                    # Si algo falla en actualización, seguimos con inserción para no bloquear seed
+                    pass
             q = QuestionModel(
                 question_text=text,
                 question_type="scale",

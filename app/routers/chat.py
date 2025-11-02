@@ -156,7 +156,36 @@ def get_next_question(
     
     if not next_question:
         raise HTTPException(status_code=404, detail="No hay preguntas disponibles")
-    
+    # Normalizar anchors para preguntas de escala (fallback seguro)
+    try:
+        if (getattr(next_question, "question_type", None) or "").lower() == "scale":
+            opts = dict(getattr(next_question, "options", {}) or {})
+            anchors = dict((opts.get("anchors") or {}) or {})
+            default_anchors = {
+                "1": "Totalmente en desacuerdo",
+                "2": "En desacuerdo",
+                "3": "Neutral",
+                "4": "De acuerdo",
+                "5": "Totalmente de acuerdo",
+            }
+            changed = False
+            for k, v in default_anchors.items():
+                cur = str(anchors.get(str(k), "")).strip()
+                if not cur or cur == str(k):
+                    anchors[str(k)] = v
+                    changed = True
+            if opts.get("scale_min") is None:
+                opts["scale_min"] = 1
+                changed = True
+            if opts.get("scale_max") is None:
+                opts["scale_max"] = 5
+                changed = True
+            if changed:
+                opts["anchors"] = anchors
+                next_question.options = opts
+    except Exception:
+        pass
+
     # Actualizar la pregunta actual en la sesión
     session.current_question_id = next_question.question_id
     db.commit()
