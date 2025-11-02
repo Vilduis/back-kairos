@@ -1,0 +1,662 @@
+[
+  {
+    "name": "Hotelería y Administración",
+    "riasec": [
+      0.4,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.1
+    ]
+  },
+  {
+    "name": "Turismo y Administración",
+    "riasec": [
+      0.4,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.1
+    ]
+  },
+  {
+    "name": "Gastronomía y Gestión Culinaria",
+    "riasec": [
+      0.7,
+      0.1,
+      0.1,
+      0.4,
+      1.0,
+      0.1
+    ]
+  },
+  {
+    "name": "Arquitectura",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Música",
+    "riasec": [
+      0.1,
+      0.4,
+      1.0,
+      0.7,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "Artes Escénicas",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.7,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Enfermería",
+    "riasec": [
+      0.1,
+      0.7,
+      0.4,
+      1.0,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "Farmacia y Bioquímica",
+    "riasec": [
+      0.1,
+      1.0,
+      0.1,
+      0.4,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Biología",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Ciencias de la Actividad Física y el Deporte",
+    "riasec": [
+      0.4,
+      0.7,
+      0.1,
+      1.0,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "Medicina",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.4,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "Medicina Veterinaria",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.4,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "Nutrición y Dietética",
+    "riasec": [
+      0.1,
+      0.7,
+      0.1,
+      1.0,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Odontología",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.4,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "Terapia Física",
+    "riasec": [
+      0.1,
+      0.7,
+      0.1,
+      1.0,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Traducción e Interpretación Profesional",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.7,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Comunicación Audiovisual y Medios Interactivos",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.4,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Comunicación e Imagen Empresarial",
+    "riasec": [
+      0.1,
+      0.1,
+      0.7,
+      0.4,
+      1.0,
+      0.1
+    ]
+  },
+  {
+    "name": "Comunicación y Marketing",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.4,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Comunicación y Periodismo",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.4,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Comunicación y Publicidad",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.4,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Comunicación y Fotografía",
+    "riasec": [
+      0.7,
+      0.1,
+      1.0,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Derecho",
+    "riasec": [
+      0.1,
+      0.1,
+      0.4,
+      0.7,
+      1.0,
+      0.1
+    ]
+  },
+  {
+    "name": "Relaciones Internacionales",
+    "riasec": [
+      0.1,
+      0.4,
+      0.1,
+      1.0,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Diseño Industrial",
+    "riasec": [
+      0.1,
+      0.7,
+      1.0,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Diseño Profesional de Interiores",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.4,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Diseño Profesional Gráfico",
+    "riasec": [
+      0.7,
+      0.1,
+      1.0,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Diseño y Gestión en Moda",
+    "riasec": [
+      0.1,
+      0.1,
+      1.0,
+      0.4,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Economía y Ciencia de Datos",
+    "riasec": [
+      0.1,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.7
+    ]
+  },
+  {
+    "name": "Economía y Finanzas",
+    "riasec": [
+      0.1,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.7
+    ]
+  },
+  {
+    "name": "Economía y Negocios Internacionales",
+    "riasec": [
+      0.1,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.7
+    ]
+  },
+  {
+    "name": "Economía Gerencial",
+    "riasec": [
+      0.1,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.7
+    ]
+  },
+  {
+    "name": "Ciencias Políticas",
+    "riasec": [
+      0.1,
+      0.4,
+      0.1,
+      1.0,
+      0.7,
+      0.1
+    ]
+  },
+  {
+    "name": "Educación y Gestión del Aprendizaje",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      1.0,
+      0.7,
+      0.4
+    ]
+  },
+  {
+    "name": "Ingeniería de Inteligencia Artificial",
+    "riasec": [
+      0.4,
+      0.7,
+      0.1,
+      0.1,
+      0.1,
+      1.0
+    ]
+  },
+  {
+    "name": "Ingeniería de Ciberseguridad",
+    "riasec": [
+      0.4,
+      0.7,
+      0.1,
+      0.1,
+      0.1,
+      1.0
+    ]
+  },
+  {
+    "name": "Ingeniería Biomédica",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Ciencias de la Computación",
+    "riasec": [
+      0.4,
+      0.7,
+      0.1,
+      0.1,
+      0.1,
+      1.0
+    ]
+  },
+  {
+    "name": "Ingeniería Civil",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Ingeniería de Gestión Empresarial",
+    "riasec": [
+      0.1,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.7
+    ]
+  },
+  {
+    "name": "Ingeniería de Gestión Minera",
+    "riasec": [
+      1.0,
+      0.7,
+      0.1,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Ingeniería de Sistemas de Información",
+    "riasec": [
+      0.1,
+      0.7,
+      0.1,
+      0.4,
+      1.0,
+      0.1
+    ]
+  },
+  {
+    "name": "Ingeniería de Software",
+    "riasec": [
+      0.4,
+      0.7,
+      0.1,
+      0.1,
+      0.1,
+      1.0
+    ]
+  },
+  {
+    "name": "Ingeniería Electrónica",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Ingeniería Industrial",
+    "riasec": [
+      0.1,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.7
+    ]
+  },
+  {
+    "name": "Ingeniería Mecatrónica",
+    "riasec": [
+      1.0,
+      0.7,
+      0.1,
+      0.4,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "Ingeniería Ambiental",
+    "riasec": [
+      0.7,
+      1.0,
+      0.1,
+      0.1,
+      0.4,
+      0.1
+    ]
+  },
+  {
+    "name": "Administración",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Agronegocios",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Ciencia de Datos para Negocios ",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Finanzas",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Gerencia del Emprendimiento",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Marketing",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Negocios del Deporte",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Negocios Digitales",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Negocios Internacionales",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Administración y Recursos Humanos",
+    "riasec": [
+      0.1,
+      0.1,
+      0.1,
+      0.7,
+      1.0,
+      0.4
+    ]
+  },
+  {
+    "name": "Contabilidad y Administración",
+    "riasec": [
+      0.7,
+      0.1,
+      0.1,
+      0.4,
+      0.1,
+      1.0
+    ]
+  },
+  {
+    "name": "Contabilidad y Finanzas",
+    "riasec": [
+      0.7,
+      0.1,
+      0.1,
+      0.4,
+      0.1,
+      1.0
+    ]
+  },
+  {
+    "name": "Psicología",
+    "riasec": [
+      0.1,
+      0.7,
+      0.1,
+      1.0,
+      0.4,
+      0.1
+    ]
+  }
+]
