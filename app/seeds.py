@@ -7,7 +7,7 @@ def seed_riasec_questions(db: Session) -> dict:
     scale_options = {
         "scale_min": 1,
         "scale_max": 5,
-        "anchors": {"1": "Nada interesado", "5": "Muy interesado"},
+        "anchors": {"1": "Totalmente en desacuerdo", "2": "En desacuerdo", "3": "Neutral", "4": "De acuerdo", "5": "Totalmente de acuerdo"},
     }
     validation = {"required": True, "allowed_range": [1, 5], "integer": True}
     riasec_items = {

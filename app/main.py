@@ -8,9 +8,10 @@ from .models import Base
 from . import schemas
 from . import security
 from . import models
-from .routers import auth, student, admin, evaluator, chat
+from .routers import auth, student, admin, evaluator, chat, recommendation
 from .config import settings
 from .deps import get_current_user
+from .services.model_service import init_recommender_artifacts
 from .db import SessionLocal
 from .seeds import seed_riasec_questions, seed_default_admins
 
@@ -35,10 +36,16 @@ app.include_router(student.router)
 app.include_router(admin.router)
 app.include_router(evaluator.router)
 app.include_router(chat.router)
+app.include_router(recommendation.router)
 
 # Hook de startup para ejecutar semillas en desarrollo
 @app.on_event("startup")
 def _startup_seed():
+    # Cargar artefactos del recomendador (siempre)
+    try:
+        init_recommender_artifacts()
+    except Exception:
+        pass
     # Ejecutar semillas solo si DEBUG está activo o el flag explícito lo permite
     if not (settings.DEBUG or getattr(settings, "SEED_ON_STARTUP", False)):
         return

@@ -1,7 +1,10 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List
 
 class Settings(BaseSettings):
+    # Configuración de Pydantic Settings (v2)
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     # Database
     DATABASE_URL: str
     
@@ -35,7 +38,4 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "https://kairos-pe.netlify.app/"
     PASSWORD_RESET_PATH: str = "/reset-password"
     
-    class Config:
-        env_file = ".env"
-
 settings = Settings()

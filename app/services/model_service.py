@@ -1,27 +1,11 @@
-# model_service.py
-from typing import Dict, Any, List
+# model_service.py (limpio)
+from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 import numpy as np
 import joblib
 import os
-import warnings
-# Intentar usar pandas para pasar nombres de columnas a sklearn
-try:
-    import pandas as pd  # type: ignore
-except ImportError:
-    pd = None
-
-# --- Imports de Modelos Locales ---
-# (Asegúrate de tener scikit-learn instalado en tu backend: pip install scikit-learn)
-try:
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.metrics.pairwise import cosine_similarity
-except ImportError:
-    print("Error: scikit-learn no está instalado. Instálalo con 'pip install scikit-learn'")
-    TfidfVectorizer = None
-    RandomForestClassifier = None
-    cosine_similarity = None
+import json
+from sklearn.metrics.pairwise import cosine_similarity
 
 # --- Imports de tus Modelos de DB ---
 from ..models import (
@@ -32,64 +16,81 @@ from ..models import (
     ChatMessage as ChatMessageModel,
     ChatSession as ChatSessionModel,
 )
-# --- Import del Nuevo Helper de Gemini ---
-from .gemini_helper import generate_specific_career_recommendations
+
 from ..config import settings
 
-# --- Constantes y Carga de Modelos ---
-BASE_MODEL_PATH = settings.MODEL_ARTIFACTS_PATH or os.path.join(os.path.dirname(__file__), 'artifacts')
-MODEL_SAVE_FILE = 'random_forest_riasec_model.joblib'
-VECTORIZER_SAVE_FILE = 'tfidf_vectorizer.joblib'
-CENTROIDS_SAVE_FILE = 'tfidf_centroids.joblib'
+# --- Artefactos nuevos V6 ---
+V6_MODEL_FILE = 'modelo_riasec_v6.pkl'
+V6_VECTORIZER_FILE = 'vectorizer_riasec_v6.pkl'
+CAREERS_JSON_FILE = 'careers_db_v6.json'
 
-riasec_types = ['R', 'I', 'A', 'S', 'E', 'C'] # Importante mantener el orden
+riasec_types = ['R', 'I', 'A', 'S', 'E', 'C']  # Importante mantener el orden
 
-# Variables globales para los modelos (se cargarán una vez)
-rf_model = None
-vectorizer = None
-centroids = None
+# Artefactos V6 (cargados bajo demanda)
+v6_model = None
+v6_vectorizer = None
+CAREERS_DB: List[Dict[str, Any]] = []
+CAREERS_VECTORS: Optional[np.ndarray] = None
 
-def load_models_if_needed():
-    """Carga los 3 artefactos .joblib si aún no están en memoria."""
-    global rf_model, vectorizer, centroids
-    
-    # Cargar Modelo Random Forest
-    if rf_model is None:
-        model_path = get_artifact_path(MODEL_SAVE_FILE)
-        print(f"Cargando modelo RF desde: {model_path}")
+
+def load_v6_models_if_needed():
+    """Carga los artefactos del modelo V6 si aún no están en memoria."""
+    global v6_model, v6_vectorizer
+    if v6_model is None:
+        model_path = get_artifact_path(V6_MODEL_FILE)
+        print(f"Cargando modelo V6 desde: {model_path}")
         try:
-            rf_model = joblib.load(model_path)
-            print("✅ Modelo RF cargado.")
+            v6_model = joblib.load(model_path)
+            print("✅ Modelo V6 cargado.")
         except FileNotFoundError:
-            print(f"❌ ERROR: No se encontró el archivo del modelo RF: {model_path}")
+            print(f"❌ ERROR: No se encontró el archivo del modelo V6: {model_path}")
         except Exception as e:
-            print(f"❌ ERROR al cargar el modelo RF: {e}")
-
-    # Cargar Vectorizador TF-IDF
-    if vectorizer is None:
-        vectorizer_path = get_artifact_path(VECTORIZER_SAVE_FILE)
-        print(f"Cargando vectorizador TF-IDF desde: {vectorizer_path}")
+            print(f"❌ ERROR al cargar el modelo V6: {e}")
+    if v6_vectorizer is None:
+        vec_path = get_artifact_path(V6_VECTORIZER_FILE)
+        print(f"Cargando vectorizador V6 desde: {vec_path}")
         try:
-            vectorizer = joblib.load(vectorizer_path)
-            print("✅ Vectorizador TF-IDF cargado.")
+            v6_vectorizer = joblib.load(vec_path)
+            print("✅ Vectorizador V6 cargado.")
         except FileNotFoundError:
-            print(f"❌ ERROR: No se encontró el archivo del vectorizador: {vectorizer_path}")
+            print(f"❌ ERROR: No se encontró el archivo del vectorizador V6: {vec_path}")
         except Exception as e:
-            print(f"❌ ERROR al cargar el vectorizador: {e}")
+            print(f"❌ ERROR al cargar el vectorizador V6: {e}")
 
-    # Cargar Centroides NLP
-    if centroids is None:
-        centroids_path = get_artifact_path(CENTROIDS_SAVE_FILE)
-        print(f"Cargando centroides NLP desde: {centroids_path}")
-        try:
-            centroids = joblib.load(centroids_path)
-            print("✅ Centroides NLP cargados.")
-        except FileNotFoundError:
-            print(f"❌ ERROR: No se encontró el archivo de centroides: {centroids_path}")
-        except Exception as e:
-            print(f"❌ ERROR al cargar los centroides: {e}")
 
-# --- Lógica de Agregación (Modificada) ---
+def init_recommender_artifacts():
+    """Carga los 3 paquetes al iniciar el servidor y prepara los vectores.
+    - modelo_riasec_v6.pkl
+    - vectorizer_riasec_v6.pkl
+    - careers_db_v6.json -> CAREERS_DB y CAREERS_VECTORS (numpy.array)
+    """
+    global CAREERS_DB, CAREERS_VECTORS
+    # Cargar modelo y vectorizador
+    load_v6_models_if_needed()
+
+    # Cargar JSON de carreras
+    try:
+        json_path = get_artifact_path(CAREERS_JSON_FILE)
+        print(f"Cargando base de carreras desde: {json_path}")
+        with open(json_path, "r", encoding="utf-8") as f:
+            CAREERS_DB = json.load(f)
+        # Procesar a numpy.array una sola vez
+        CAREERS_VECTORS = np.array([
+            np.array(item.get("riasec", [0, 0, 0, 0, 0, 0]), dtype=float)
+            for item in CAREERS_DB
+        ], dtype=float)
+        print(f"✅ Base de carreras cargada: {len(CAREERS_DB)} carreras")
+    except FileNotFoundError:
+        print(f"❌ ERROR: No se encontró {CAREERS_JSON_FILE}")
+        CAREERS_DB = []
+        CAREERS_VECTORS = np.zeros((0, 6), dtype=float)
+    except Exception as e:
+        print(f"❌ ERROR al cargar {CAREERS_JSON_FILE}: {e}")
+        CAREERS_DB = []
+        CAREERS_VECTORS = np.zeros((0, 6), dtype=float)
+
+
+# --- Lógica de Agregación (simplificada) ---
 
 def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[str, Any]:
     """
@@ -109,8 +110,7 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
     )
 
     text_parts: List[str] = []
-    # --- MODIFICADO: Calcular SUMAS (como se entrenó el modelo) ---
-    mcq_scores: Dict[str, float] = {k: 0.0 for k in riasec_types} 
+    mcq_scores: Dict[str, float] = {k: 0.0 for k in riasec_types}
 
     for ans, q in rows:
         cat_key = None
@@ -118,7 +118,6 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
             try:
                 last = q.category.split("_")[-1]
                 key_raw = (last or "").upper()
-                # Normalizar el sufijo de la categoría a letra RIASEC
                 synonyms = {
                     "R": "R", "REALISTA": "R", "REALISTIC": "R",
                     "I": "I", "INVESTIGATIVO": "I", "INVESTIGATIVE": "I", "INVESTIGADOR": "I",
@@ -151,14 +150,12 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
                             val = float(sel[0])
                         except Exception:
                             pass
-            # Si no hay selected_options, intenta parsear answer_text numérico para preguntas de tipo escala
             if val is None and getattr(q, "question_type", None) == "scale" and ans.answer_text:
                 t = str(ans.answer_text).strip().replace(",", ".")
                 val = float(t)
         except Exception:
             val = None
         if val is not None and cat_key and cat_key in mcq_scores:
-            # SUMAR en lugar de promediar, como en entrenamiento
             mcq_scores[cat_key] += val
 
     # Agregar mensajes abiertos del chat
@@ -183,90 +180,79 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
             seen.add(nt)
 
     answers_text = "\n".join(normalized_parts)
-    
     return {"answers_text": answers_text, "mcq_scores": mcq_scores}
 
-# --- Lógica de Procesamiento NLP (Nueva) ---
 
-def get_nlp_scores(text: str) -> dict[str, float]:
-    """Calcula los puntajes de similitud RIASEC usando los modelos cargados."""
-    global vectorizer, centroids
-    
-    if not text or not vectorizer or not centroids:
-        return {r_type: 0.0 for r_type in riasec_types}
+# --- Utilidades de conversión de perfiles (V6) ---
 
+def normalize_1_to_5_to_0_to_1(profile_1_to_5: dict[str, float]) -> dict[str, float]:
+    """Convierte un perfil en escala 1-5 a 0-1 (lineal)."""
+    norm: dict[str, float] = {}
+    for k in riasec_types:
+        v = float(profile_1_to_5.get(k, 1.0))
+        norm[k] = float(np.clip((v - 1.0) / 4.0, 0.0, 1.0))
+    return norm
+
+
+def convert_0_to_1_to_1_to_5(profile_0_to_1: dict[str, float]) -> dict[str, float]:
+    """Convierte un perfil 0-1 a 1-5 para visualización (redondeo a 0.1)."""
+    scaled: dict[str, float] = {}
+    for k in riasec_types:
+        v = float(profile_0_to_1.get(k, 0.0))
+        scaled[k] = round(float(np.clip(v * 4.0 + 1.0, 1.0, 5.0)), 1)
+    return scaled
+
+
+def predict_profile_from_text_v6(text: str) -> dict[str, float]:
+    """Usa el vectorizador y modelo V6 para predecir el perfil RIASEC (0-1)."""
+    global v6_model, v6_vectorizer
+    if not text:
+        return {r: 0.0 for r in riasec_types}
+    load_v6_models_if_needed()
+    if v6_model is None or v6_vectorizer is None:
+        return {r: 0.0 for r in riasec_types}
     try:
-        text_vector = vectorizer.transform([text])
-        nlp_scores = {}
-        for r_type in riasec_types:
-            centroid_vector = centroids[r_type].reshape(1, -1)
-            similarity = cosine_similarity(text_vector, centroid_vector)[0][0]
-            nlp_scores[r_type] = float(similarity)
-        return nlp_scores
+        X_input = v6_vectorizer.transform([text])
+        pred = v6_model.predict(X_input)[0]
+        pred = np.clip(pred, 0.0, 1.0)
+        return {letter: float(pred[i]) for i, letter in enumerate(riasec_types)}
     except Exception as e:
-        print(f"Error en get_nlp_scores: {e}")
-        return {r_type: 0.0 for r_type in riasec_types}
+        print(f"Error en predict_profile_from_text_v6: {e}")
+        return {r: 0.0 for r in riasec_types}
 
-# --- Lógica de Perfil Final (Nueva) ---
 
-def calculate_final_profile(mcq_scores: dict[str, float], nlp_scores: dict[str, float], weight_mcq: float = 0.70, weight_nlp: float = 0.30) -> tuple[dict[str, float], np.ndarray]:
-    """Combina y escala los puntajes para el perfil final."""
-    
-    # Constantes de escalado (como en el entrenamiento)
-    max_mcq_per_dim = 6 * 5 # Max teórico MCQ (6 preguntas * 5 puntos)
-    max_nlp_per_dim = 1.0   # Max teórico Similitud Coseno
-    
-    profile_0_to_1: dict[str, float] = {}
-    for r_type in riasec_types:
-        scaled_mcq = mcq_scores.get(r_type, 0) / max_mcq_per_dim if max_mcq_per_dim > 0 else 0
-        scaled_nlp = nlp_scores.get(r_type, 0) / max_nlp_per_dim if max_nlp_per_dim > 0 else 0
-        profile_0_to_1[r_type] = (weight_mcq * scaled_mcq) + (weight_nlp * scaled_nlp)
+# --- Base determinística de carreras (sin career.py) ---
 
-    # Re-escalar el perfil 0-1 a la escala de entrenamiento del RF (~0-30)
-    profile_for_model = np.array(
-        [profile_0_to_1[r_type] * max_mcq_per_dim for r_type in riasec_types]
-    ).reshape(1, -1)
+def code_to_riasec_vector(code: str) -> List[float]:
+    """Convierte un código tipo 'SEI' a vector ponderado RIASEC."""
+    weights = {"R": 0.1, "I": 0.1, "A": 0.1, "S": 0.1, "E": 0.1, "C": 0.1}
+    c = (code or "").upper().strip()
+    if len(c) > 0 and c[0] in weights: weights[c[0]] = 1.0
+    if len(c) > 1 and c[1] in weights: weights[c[1]] = 0.7
+    if len(c) > 2 and c[2] in weights: weights[c[2]] = 0.4
+    return [weights[letter] for letter in riasec_types]
 
-    return profile_0_to_1, profile_for_model
 
-# --- Función Principal (Modificada) ---
+# --- Función Principal ---
 
 def generate_and_save_results(db: Session, evaluation_id: int) -> EvaluationResultModel:
     """
-    Función principal actualizada:
-    1. Carga los modelos .joblib
-    2. Agrega puntajes MCQ y texto libre de la DB
-    3. Calcula puntajes NLP localmente
-    4. Combina y escala para crear el perfil final
-    5. Ejecuta el Random Forest local para obtener Top 3 CATEGORÍAS
-    6. Llama a Gemini para obtener carreras ESPECÍFICAS
-    7. Guarda el resultado final en la DB
+    Flujo principal:
+    1) Carga datos de la evaluación (MCQ y texto libre)
+    2) Determina modo (guided vs open)
+    3) Construye perfil RIASEC:
+       - guided: normaliza 1–5 -> 0–1 (sin modelo de texto)
+       - open: usa V6 texto->perfil (carga artefactos sólo en este modo)
+    4) Obtiene Top 3 del modelo externo
+    5) Persistir el resultado en la DB
     """
-    
-    # Paso 1: Cargar modelos locales
-    load_models_if_needed()
-    
-    # Verificar que los modelos estén cargados
-    if not rf_model or not vectorizer or not centroids:
-        print("ERROR: Los modelos locales no están cargados. Abortando.")
-        # Crear un resultado consistente con el esquema para evitar errores de validación
-        result_error = EvaluationResultModel(
-            evaluation_id=evaluation_id,
-            riasec_scores={k: 0.0 for k in riasec_types},
-            top_careers=[],
-            metrics={"model_accuracy_static": 0.0, "error_models_not_loaded": 1.0}
-        )
-        db.add(result_error)
-        db.commit()
-        db.refresh(result_error)
-        return result_error
 
-    # Paso 2: Agregar datos de la DB
+    # Paso 1: Agregar datos de la DB
     agg = aggregate_answers_for_evaluation(db, evaluation_id)
     mcq_scores = agg["mcq_scores"]
     answers_text = agg["answers_text"]
 
-    # Determinar ponderaciones según modo de chat
+    # Determinar modo (guiado vs abierto)
     evaluation_rec = db.query(EvaluationModel).filter(EvaluationModel.evaluation_id == evaluation_id).first()
     chat_mode = None
     if evaluation_rec:
@@ -275,117 +261,56 @@ def generate_and_save_results(db: Session, evaluation_id: int) -> EvaluationResu
             chat_mode = chat_session.chat_mode
         if not chat_mode:
             chat_mode = getattr(evaluation_rec, "evaluation_mode", None)
-    if chat_mode == "open":
-        weight_mcq, weight_nlp = 0.0, 1.0
+
+    # Paso 2: Construir perfil según modo
+    if (chat_mode or "guided") == "open":
+        load_v6_models_if_needed()
+        profile_0_to_1 = predict_profile_from_text_v6(answers_text)
     else:
-        weight_mcq, weight_nlp = 0.70, 0.30
+        max_mcq_per_dim = 6 * 5
+        profile_1_to_5 = {}
+        for r_type in riasec_types:
+            profile_1_to_5[r_type] = round(float(np.clip(mcq_scores.get(r_type, 0.0) / max_mcq_per_dim * 4.0 + 1.0, 1.0, 5.0)), 1)
+        profile_0_to_1 = normalize_1_to_5_to_0_to_1(profile_1_to_5)
 
-    # Paso 3: Calcular puntajes NLP
-    nlp_scores = get_nlp_scores(answers_text)
+    free_text = (answers_text or "").strip()
+    # Recomendaciones basadas en similitud (si la base está cargada); fallback: vacío
+    top3: List[Dict[str, Any]] = _get_recommendations(profile_0_to_1, top_n=3)
 
-    # Paso 4: Combinar y escalar (con ponderación por modo)
-    profile_0_to_1, profile_for_model = calculate_final_profile(mcq_scores, nlp_scores, weight_mcq, weight_nlp)
+    mode_numeric = 1.0 if (chat_mode or "guided") == "open" else 0.0
+    metrics = {"model_version": 6.0, "source_mode": mode_numeric}
 
-    # Paso 5: Ejecutar Random Forest local
-    # Construir entrada con nombres de características si es posible para evitar el warning
-    X = profile_for_model
-    if hasattr(rf_model, "feature_names_in_"):
-        feature_names = list(getattr(rf_model, "feature_names_in_"))
-        # Mapear nombres de columnas del modelo a letras RIASEC
-        feature_synonyms = {
-            # Inglés
-            "Realistic": "R", "Investigative": "I", "Artistic": "A", "Social": "S", "Enterprising": "E", "Conventional": "C",
-            # Minúsculas inglés
-            "realistic": "R", "investigative": "I", "artistic": "A", "social": "S", "enterprising": "E", "conventional": "C",
-            # Español
-            "Realista": "R", "Investigativo": "I", "Artístico": "A", "Social": "S", "Emprendedor": "E", "Convencional": "C",
-            # Minúsculas español
-            "realista": "R", "investigativo": "I", "artístico": "A", "artistico": "A", "social": "S", "emprendedor": "E", "convencional": "C",
-            # Prefijos de entrenamiento (Colab)
-            "Score_R": "R", "Score_I": "I", "Score_A": "A", "Score_S": "S", "Score_E": "E", "Score_C": "C",
-            "score_R": "R", "score_I": "I", "score_A": "A", "score_S": "S", "score_E": "E", "score_C": "C",
-            # Letras directas
-            "R": "R", "I": "I", "A": "A", "S": "S", "E": "E", "C": "C",
-        }
-        # Valores por tipo (en la escala del modelo)
-        values_by_type = {t: float(profile_for_model[0][i]) for i, t in enumerate(riasec_types)}
-        if pd is not None:
-            row = {}
-            for col in feature_names:
-                letter = feature_synonyms.get(col, col if col in riasec_types else None)
-                val = values_by_type.get(letter, 0.0)
-                row[col] = val
-            X = pd.DataFrame([row], columns=feature_names)
-            # Debug
-            print(f"[RF DEBUG] feature_names: {feature_names}")
-            print(f"[RF DEBUG] assembled_row: {row}")
-        else:
-            idx_map = {t: i for i, t in enumerate(riasec_types)}
-            ordered = []
-            for col in feature_names:
-                letter = feature_synonyms.get(col, col if col in riasec_types else None)
-                idx = idx_map.get(letter, idx_map.get("R", 0))
-                ordered.append(float(profile_for_model[0][idx]))
-            X = np.array(ordered).reshape(1, -1)
-            # Suprimir el warning específico de nombres si no tenemos pandas
-            warnings.filterwarnings(
-                "ignore",
-                message=(
-                    "X does not have valid feature names, but RandomForestClassifier was fitted with feature names"
-                ),
-                category=UserWarning,
-            )
-            # Debug
-            print(f"[RF DEBUG] feature_names: {feature_names}")
-            print(f"[RF DEBUG] assembled_ordered: {ordered}")
-    # Si el modelo no expone feature_names_in_, usar el orden R,I,A,S,E,C directamente
+    existing = (
+        db.query(EvaluationResultModel)
+        .filter(EvaluationResultModel.evaluation_id == evaluation_id)
+        .first()
+    )
+    if existing:
+        existing.riasec_scores = {k: round(float(v), 4) for k, v in profile_0_to_1.items()}
+        existing.top_careers = top3
+        existing.metrics = metrics
+        db.commit()
+        db.refresh(existing)
+        return existing
     else:
-        X = profile_for_model
-
-    probabilities = rf_model.predict_proba(X)
-    classes = rf_model.classes_
-    prob_list = list(zip(classes, probabilities[0]))
-    prob_list.sort(key=lambda x: x[1], reverse=True)
-    # Debug
-    try:
-        print(f"[RF DEBUG] classes: {list(classes)}")
-        print(f"[RF DEBUG] probabilities: {[round(float(x),4) for x in probabilities[0]]}")
-    except Exception:
-        pass
-
-    top3_categories_list = []
-    for career_category, score in prob_list[:3]:
-        top3_categories_list.append({"category": career_category, "score": round(float(score), 4)})
-    # Debug
-    print(f"[RF DEBUG] top3: {top3_categories_list}")
-
-    # Paso 6: Llamar a Gemini para obtener carreras específicas
-    # (El helper ahora solo genera las carreras, no el perfil)
-    gemini_results = generate_specific_career_recommendations(
-        riasec_profile=profile_0_to_1,
-        top3_categories=top3_categories_list,
-        free_text=answers_text
-    )
-
-    # Paso 7: Guardar el resultado final
-    result = EvaluationResultModel(
-        evaluation_id=evaluation_id,
-        riasec_scores={k: round(v, 4) for k, v in profile_0_to_1.items()}, # Perfil calculado localmente
-        top_careers=gemini_results.get("top3_careers", []), # Carreras específicas del catálogo/LLM
-        metrics={"model_accuracy_static": 0.925} # Métrica estática del modelo
-    )
-    db.add(result)
-    db.commit()
-    db.refresh(result)
-    
+        result = EvaluationResultModel(
+            evaluation_id=evaluation_id,
+            riasec_scores={k: round(float(v), 4) for k, v in profile_0_to_1.items()},
+            top_careers=top3,
+            metrics=metrics,
+        )
+        db.add(result)
+        db.commit()
+        db.refresh(result)
     return result
 
-# --- Funciones no modificadas (si las necesitas) ---
+
+# --- Funciones auxiliares ---
+
 def ensure_evaluation_for_session(db: Session, user_id: int, session_id: int) -> EvaluationModel:
     evaluation = db.query(EvaluationModel).filter(EvaluationModel.session_id == session_id).first()
     if evaluation:
         return evaluation
-    # Ajustar el modo de la evaluación según la sesión
     chat_session = db.query(ChatSessionModel).filter(ChatSessionModel.session_id == session_id).first()
     eval_mode = chat_session.chat_mode if chat_session else "guided"
     evaluation = EvaluationModel(user_id=user_id, session_id=session_id, evaluation_mode=eval_mode)
@@ -396,6 +321,76 @@ def ensure_evaluation_for_session(db: Session, user_id: int, session_id: int) ->
 
 
 def get_artifact_path(filename: str) -> str:
-    base = settings.MODEL_ARTIFACTS_PATH or os.path.join(os.path.dirname(__file__), 'artifacts')
-    path = os.path.abspath(os.path.join(base, filename))
-    return path
+    """Busca el archivo en:
+    1) Mismo directorio que este módulo
+    2) settings.MODEL_ARTIFACTS_PATH
+    3) subcarpeta 'artifacts' dentro del directorio de este módulo
+    """
+    module_dir = os.path.dirname(__file__)
+    candidates = [
+        os.path.abspath(os.path.join(module_dir, filename)),
+    ]
+    if getattr(settings, "MODEL_ARTIFACTS_PATH", None):
+        candidates.append(os.path.abspath(os.path.join(settings.MODEL_ARTIFACTS_PATH, filename)))
+    candidates.append(os.path.abspath(os.path.join(module_dir, 'artifacts', filename)))
+
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    # Si no existe ninguno, devolvemos la última ruta como predeterminada
+    return candidates[-1]
+
+
+def _get_recommendations(profile_0_to_1: Dict[str, float], top_n: int = 3) -> List[Dict[str, Any]]:
+    """Compara el perfil del usuario (0-1) contra CAREERS_VECTORS y devuelve top N.
+    Salida: [{"career": name, "score": float, "description": str}]
+    """
+    global CAREERS_DB, CAREERS_VECTORS
+    try:
+        if CAREERS_VECTORS is None or CAREERS_VECTORS.shape[0] == 0:
+            return []
+        user_vec = np.array([profile_0_to_1.get(k, 0.0) for k in riasec_types], dtype=float).reshape(1, -1)
+        sims = cosine_similarity(user_vec, CAREERS_VECTORS)[0]
+        idxs = np.argsort(sims)[::-1][:top_n]
+        user_order = np.argsort(user_vec.flatten())[::-1]
+        user_top = [riasec_types[int(i)] for i in user_order[:2]]
+
+        def _describe(name: str, c_vec: np.ndarray) -> str:
+            labels = {
+                "R": "Realista",
+                "I": "Investigador",
+                "A": "Artístico",
+                "S": "Social",
+                "E": "Emprendedor",
+                "C": "Convencional",
+            }
+            traits = {
+                "R": "proyectos prácticos y resultados tangibles",
+                "I": "análisis y resolución de problemas complejos",
+                "A": "creación y diseño de soluciones creativas",
+                "S": "comunicación y trabajo colaborativo",
+                "E": "liderazgo, negociación y dirección de iniciativas",
+                "C": "organización, planificación y seguimiento de procesos",
+            }
+            order = np.argsort(c_vec)[::-1]
+            ct = [riasec_types[int(i)] for i in order[:2]]
+            p1 = f"Se alinea con tus intereses {labels[user_top[0]]} ({user_top[0]})"
+            p1 += f" y {labels[user_top[1]]} ({user_top[1]})."
+            p2 = f" En {name}, el enfoque {labels[ct[0]]} ({ct[0]}) favorece {traits[ct[0]]}."
+            p3 = f" También aporta {traits[ct[1]]} desde {labels[ct[1]]} ({ct[1]})."
+            return (p1 + p2 + p3).strip()
+
+        output: List[Dict[str, Any]] = []
+        for i in idxs:
+            item = CAREERS_DB[i]
+            name = str(item.get("name", ""))
+            c_vec = CAREERS_VECTORS[i]
+            output.append({
+                "career": name,
+                "score": round(float(sims[i]), 2),
+                "description": _describe(name, c_vec),
+            })
+        return output
+    except Exception as e:
+        print(f"Error en _get_recommendations: {e}")
+        return []

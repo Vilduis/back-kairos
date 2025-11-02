@@ -163,7 +163,7 @@ def get_next_question(
     
     return next_question
 
-# NUEVO: Siguiente mensaje en modo abierto (3 interacciones con Gemini)
+# NUEVO: Siguiente mensaje en modo abierto con confirmación basada en señales (gustos/habilidades/fortalezas)
 @router.post("/sessions/{session_id}/open/next")
 def get_open_next(
     session_id: int,
@@ -184,24 +184,268 @@ def get_open_next(
         ChatMessageModel.session_id == session_id,
         ChatMessageModel.message_type == "user"
     ).order_by(ChatMessageModel.message_order.asc()).all()
+    last_user_text = (user_msgs[-1].content if user_msgs else "").strip()
+
+    # --- Heurísticas para determinar señales sustantivas ---
+    def _normalize(text: str) -> str:
+        t = text.strip().lower()
+        return (
+            t.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+        )
+
+    def _is_greeting(text: str) -> bool:
+        t = _normalize(text)
+        if not t:
+            return False
+        greetings = [
+            "hola", "holi", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches",
+            "hey", "que tal", "saludos"
+        ]
+        # Si el texto es corto y coincide con saludos comunes
+        return any(t == g or t.startswith(g) for g in greetings) or len(t) <= 5
+
+    def _is_acceptance(text: str) -> bool:
+        positives = [
+            "si", "sí", "yes", "ok", "okay", "dale", "claro",
+            "mostrar", "muéstrame", "muestrame", "ver", "verlos", "ver resultados",
+            "mostrar resultados", "quiero ver", "quiero mis resultados", "resultados", "muestrame el resultado",
+        ]
+        t = _normalize(text)
+        return any(p in t for p in positives)
+
+    def _is_negative(text: str) -> bool:
+        t = _normalize(text)
+        negatives = ["no", "no aun", "todavia no", "prefiero seguir", "seguir conversando"]
+        return any(t == n or n in t for n in negatives)
+
+    def _is_substantive_signal(text: str) -> bool:
+        if not text:
+            return False
+        t = _normalize(text)
+        if _is_greeting(t):
+            return False
+        # Ignorar confirmaciones cortas
+        if _is_acceptance(t) or _is_negative(t):
+            return False
+        # Palabras/expresiones que suelen indicar gustos, habilidades o fortalezas
+        signal_keywords = [
+            "me gusta", "me encanta", "prefiero", "disfruto", "me interesa", "me atrae", "soy bueno", "se me da",
+            "me vacila", "me motiva", "me apasiona", "me llama",
+            "habilidad", "fortaleza", "fan", "aficion", "pasiones", "crear", "diseñar", "dibujar", "pintar",
+            "programar", "investigar", "analizar", "analizar datos", "enseñar", "comunicar", "organizar", "liderar", "colaborar",
+            "arte", "musica", "deporte", "tecnologia", "ciencia", "matematicas", "numeros", "negocios", "marketing",
+            "cultura", "paisajes", "historias", "escribir", "acertijos", "rompecabezas", "ayudar"
+        ]
+        long_enough = len(t) >= 15  # textos muy cortos rara vez aportan señal
+        has_keyword = any(kw in t for kw in signal_keywords)
+        return has_keyword or long_enough
+
+    def _count_signals(text: str) -> int:
+        """Cuenta señales dentro de un mismo mensaje.
+        Regla: suma anclas ("me gusta", "prefiero", etc.), preferencias negativas ("no me gusta"),
+        y hasta 3 coincidencias de palabras clave; añade 1 extra si el texto es largo.
+        Limita el total por mensaje para evitar inflar (máx. 4).
+        """
+        if not text:
+            return 0
+        t = _normalize(text)
+        if _is_greeting(t) or _is_acceptance(t) or _is_negative(t):
+            return 0
+
+        anchors = [
+            "me gusta", "me encanta", "prefiero", "disfruto", "me interesa", "me atrae",
+            "soy bueno", "se me da", "me vacila", "me motiva", "me apasiona", "me llama"
+        ]
+        count = sum(t.count(a) for a in anchors)
+        count += t.count("no me gusta")
+
+        kw_list = [
+            "habilidad", "fortaleza", "crear", "diseñar", "dibujar", "pintar",
+            "programar", "investigar", "analizar", "analizar datos", "enseñar", "comunicar",
+            "organizar", "liderar", "colaborar", "arte", "musica", "deporte", "tecnologia",
+            "ciencia", "matematicas", "numeros", "negocios", "marketing", "cultura", "escribir",
+            "acertijos", "rompecabezas", "ayudar"
+        ]
+        unique_hits = sum(1 for kw in kw_list if kw in t)
+        count += min(unique_hits, 3)
+
+        if len(t) >= 25:
+            count += 1
+
+        # Acotar entre 1 y 4 para evitar sobreconteos
+        if count <= 0:
+            return 0
+        return max(1, min(count, 4))
+
+    # Los mensajes de insistencia se delegan al generador de follow-up
+
+    # Calcular número de señales sustantivas únicas por mensaje
+    # Contabilizar 5–6 señales en general (no por tipo) y permitir múltiples por mensaje
+    signal_count = sum(_count_signals(m.content) for m in user_msgs)
     user_count = len(user_msgs)
 
-    # Si ya hay 3 mensajes del usuario -> generar perfil y resultados
-    if user_count >= 3:
-        evaluation = ensure_evaluation_for_session(db, current_student.user_id, session_id)
-        result = generate_and_save_results(db, evaluation.evaluation_id)
-        evaluation.status = "completed"
-        evaluation.completed_at = func.now()
-        # Marcar sesión de chat como completada y mover a resultados
-        session.status = "completed"
-        session.conversation_stage = "results"
+    # Helper local para interpretar aceptación simple (sí / mostrar / ver/dar resultados)
+    def _is_acceptance(text: str) -> bool:
+        t = (text or "").strip().lower()
+        # Normalizar acentos básicos
+        t = t.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+
+        # Aceptaciones cortas
+        short_yes = ["si", "sí", "yes", "ok", "okay", "dale", "claro"]
+        if any(p in t for p in short_yes):
+            return True
+
+        # Verbos comunes para pedir resultados
+        verbs = [
+            "ver", "mostrar", "muestrame", "muéstrame", "dame", "dar", "entregar", "obtener",
+            "tener", "quiero", "necesito", "podrias", "puedes"
+        ]
+        nouns = ["resultado", "resultados"]
+        if any(v in t for v in verbs) and any(n in t for n in nouns):
+            return True
+
+        # Frases específicas adicionales
+        extra = [
+            "verlos", "ver resultados", "mostrar resultados", "quiero ver", "quiero mis resultados",
+            "mi resultado", "dame mi resultado", "darme el resultado", "darme mi resultado"
+        ]
+        if any(p in t for p in extra):
+            return True
+        return False
+
+    # Si el último mensaje es una aceptación explícita y ya hay señales mínimas, permitir cerrar
+    if _is_acceptance(last_user_text):
+        if signal_count >= 3:
+            session.conversation_stage = "results"
+            session.last_activity = func.now()
+            db.commit()
+            return {"detail": "El estudiante confirmó ver resultados. Generando..."}
+        else:
+            # Delegar el seguimiento al generador (Gemini/fallback)
+            previous_texts = [m.content for m in user_msgs]
+            bot_text = generate_open_followup(previous_texts)
+            max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
+            next_order = (max_order or 0) + 1
+            bot_msg = ChatMessageModel(
+                session_id=session_id,
+                message_type="bot",
+                content=bot_text,
+                message_order=next_order,
+            )
+            db.add(bot_msg)
+            session.conversation_stage = "collecting"
+            session.last_activity = func.now()
+            db.commit()
+            db.refresh(bot_msg)
+            return {"bot_message": bot_msg}
+
+    # Si estamos esperando confirmación del estudiante
+    if (session.conversation_stage or "").lower() == "confirm_results":
+        if _is_acceptance(last_user_text):
+            # El estudiante confirmó que quiere ver resultados.
+            # No generamos resultados aquí para evitar duplicidad.
+            # El frontend llamará a /complete para cerrar y generar.
+            session.conversation_stage = "results"
+            session.last_activity = func.now()
+            db.commit()
+            return {"detail": "El estudiante confirmó ver resultados. Generando..."}
+        else:
+            # Volver a etapa de recolección y continuar con seguimiento
+            previous_texts = [m.content for m in user_msgs]
+            bot_text = generate_open_followup(previous_texts)
+
+            max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
+            next_order = (max_order or 0) + 1
+
+            bot_msg = ChatMessageModel(
+                session_id=session_id,
+                message_type="bot",
+                content=bot_text,
+                message_order=next_order
+            )
+            db.add(bot_msg)
+            session.conversation_stage = "collecting"
+            session.last_activity = func.now()
+            db.commit()
+            db.refresh(bot_msg)
+            return {"bot_message": bot_msg}
+
+    # Límite duro de 6 mensajes del usuario: forzar confirmación
+    if user_count >= 6 and (session.conversation_stage or "").lower() != "results":
+        confirm_text_limit = (
+            "Hemos llegado al límite de 6 mensajes. Tengo suficiente información para estimar tu perfil "
+            "y recomendarte carreras. ¿Te muestro los resultados ahora? Responde ‘sí’ para ver resultados o ‘no’ para seguir conversando."
+        )
+
+        max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
+        next_order = (max_order or 0) + 1
+
+        bot_msg = ChatMessageModel(
+            session_id=session_id,
+            message_type="bot",
+            content=confirm_text_limit,
+            message_order=next_order
+        )
+        db.add(bot_msg)
+        session.conversation_stage = "confirm_results"
         session.last_activity = func.now()
         db.commit()
-        return {"detail": "Conversación abierta completada", "evaluation_id": evaluation.evaluation_id, "result_id": result.result_id}
+        db.refresh(bot_msg)
+        return {"bot_message": bot_msg, "awaiting_confirmation": True}
 
-    # Generar pregunta de seguimiento con Gemini (o fallback)
+    # Aviso proactivo al 5.º mensaje: pedir última señal antes de mostrar resultados
+    if user_count == 5 and (session.conversation_stage or "").lower() != "confirm_results":
+        confirm_text_5 = (
+            "Gracias por compartir. Ya estamos por el límite de 6 mensajes; ¿qué más te gustaría agregar "
+            "para poder mostrarte el resultado? Responde ‘sí’ para ver resultados o ‘no’ para seguir conversando."
+        )
+
+        max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
+        next_order = (max_order or 0) + 1
+
+        bot_msg = ChatMessageModel(
+            session_id=session_id,
+            message_type="bot",
+            content=confirm_text_5,
+            message_order=next_order
+        )
+        db.add(bot_msg)
+        session.conversation_stage = "confirm_results"
+        session.last_activity = func.now()
+        db.commit()
+        db.refresh(bot_msg)
+        return {"bot_message": bot_msg, "awaiting_confirmation": True}
+
+    # Si ya hay suficientes señales sustantivas (>=5) -> pedir confirmación para mostrar resultados
+    if signal_count >= 5:
+        confirm_text = (
+            "Gracias por compartir. Ya tengo suficiente información para estimar tu perfil "
+            "y recomendarte carreras. ¿Te muestro los resultados ahora o prefieres agregar más? "
+            "Responde ‘sí’ para ver resultados o ‘no’ para seguir conversando."
+        )
+
+        max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
+        next_order = (max_order or 0) + 1
+
+        bot_msg = ChatMessageModel(
+            session_id=session_id,
+            message_type="bot",
+            content=confirm_text,
+            message_order=next_order
+        )
+        db.add(bot_msg)
+        # Marcar etapa de confirmación
+        session.conversation_stage = "confirm_results"
+        session.last_activity = func.now()
+        db.commit()
+        db.refresh(bot_msg)
+        return {"bot_message": bot_msg, "awaiting_confirmation": True}
+
+    # Caso general: generar pregunta de seguimiento con Gemini (o fallback)
     previous_texts = [m.content for m in user_msgs]
     bot_text = generate_open_followup(previous_texts)
+
+    # Anti-repetición delegada al generador de follow-up
 
     # Calcular el próximo orden
     max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
@@ -219,7 +463,7 @@ def get_open_next(
     db.commit()
     db.refresh(bot_msg)
 
-    return {"bot_message": bot_msg, "remaining_user_interactions": 3 - user_count}
+    return {"bot_message": bot_msg}
 
 # Mensaje de bienvenida (opcional desde backend)
 @router.get("/welcome")
@@ -297,9 +541,39 @@ def get_session_results(
     evaluation = db.query(EvaluationModel).filter(EvaluationModel.session_id == session_id).first()
     if not evaluation or evaluation.user_id != current_student.user_id:
         raise HTTPException(status_code=404, detail="Evaluación no encontrada")
-    result = db.query(EvaluationResultModel).filter(EvaluationResultModel.evaluation_id == evaluation.evaluation_id).first()
+    # Usar el resultado más reciente por fecha de generación
+    result = (
+        db.query(EvaluationResultModel)
+        .filter(EvaluationResultModel.evaluation_id == evaluation.evaluation_id)
+        .order_by(EvaluationResultModel.generated_at.desc())
+        .first()
+    )
     if not result:
         raise HTTPException(status_code=404, detail="Resultados no generados aún")
+    # Sanitizar métricas para cumplir el esquema (valores numéricos)
+    metrics = result.metrics or {}
+    mv = metrics.get("model_version")
+    sm = metrics.get("source_mode")
+    def _to_float(x):
+        try:
+            return float(x)
+        except Exception:
+            return None
+    mv_num = _to_float(mv)
+    if mv_num is None:
+        # Normalizar valores históricos ('v6', '6', etc.) a 6.0
+        mv_num = 6.0
+    metrics["model_version"] = mv_num
+    sm_num = _to_float(sm)
+    if sm_num is None:
+        # guided -> 0.0; open -> 1.0 (por defecto guided)
+        try:
+            sm_str = str(sm or "guided").lower()
+        except Exception:
+            sm_str = "guided"
+        sm_num = 1.0 if sm_str == "open" else 0.0
+    metrics["source_mode"] = sm_num
+    result.metrics = metrics
     return result
 
 
