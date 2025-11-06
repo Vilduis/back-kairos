@@ -343,7 +343,8 @@ def get_open_next(
         return False
 
     # Si el último mensaje es una aceptación explícita y ya hay señales mínimas, permitir cerrar
-    if _is_acceptance(last_user_text):
+    # Evitar interceptar cuando estamos en etapa de confirmación explícita (se maneja más abajo)
+    if _is_acceptance(last_user_text) and (session.conversation_stage or "").lower() != "confirm_results":
         if signal_count >= 3:
             session.conversation_stage = "results"
             session.last_activity = func.now()
@@ -403,7 +404,7 @@ def get_open_next(
     if user_count >= 6 and (session.conversation_stage or "").lower() != "results":
         confirm_text_limit = (
             "Hemos llegado al límite de 6 mensajes. Tengo suficiente información para estimar tu perfil "
-            "y recomendarte carreras. ¿Te muestro los resultados ahora? Responde ‘sí’ para ver resultados o ‘no’ para seguir conversando."
+            "y recomendarte carreras. ¿Te muestro los resultados ahora? Responde ‘si’ para ver resultados o ‘no’ para seguir conversando."
         )
 
         max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
@@ -426,7 +427,7 @@ def get_open_next(
     if user_count == 5 and (session.conversation_stage or "").lower() != "confirm_results":
         confirm_text_5 = (
             "Gracias por compartir. Ya estamos por el límite de 6 mensajes; ¿qué más te gustaría agregar "
-            "para poder mostrarte el resultado? Responde ‘sí’ para ver resultados o ‘no’ para seguir conversando."
+            "para poder mostrarte el resultado? Responde ‘si’ para ver resultados o ‘no’ para seguir conversando."
         )
 
         max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
@@ -450,7 +451,7 @@ def get_open_next(
         confirm_text = (
             "Gracias por compartir. Ya tengo suficiente información para estimar tu perfil "
             "y recomendarte carreras. ¿Te muestro los resultados ahora o prefieres agregar más? "
-            "Responde ‘sí’ para ver resultados o ‘no’ para seguir conversando."
+            "Responde ‘si’ para ver resultados o ‘no’ para seguir conversando."
         )
 
         max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
