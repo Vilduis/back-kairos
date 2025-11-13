@@ -4,8 +4,8 @@ from sqlalchemy import or_
 from typing import List, Optional
 
 from ..db import get_db
-from ..models import User as UserModel, EvaluatorAssignment
-from ..schemas import User as UserSchema, UserCreate, UserUpdate, EvaluatorAssignment as EvaluatorAssignmentSchema
+from ..models import User as UserModel, EvaluatorAssignment, StudentFeedback as StudentFeedbackModel
+from ..schemas import User as UserSchema, UserCreate, UserUpdate, EvaluatorAssignment as EvaluatorAssignmentSchema, StudentFeedback as StudentFeedbackSchema
 from ..deps import get_current_user
 from ..security import get_password_hash
 
@@ -269,3 +269,28 @@ def delete_assignment(
     db.delete(assignment)
     db.commit()
     return {"detail": "Asignación eliminada"}
+
+# Listar feedback de estudiantes con filtros opcionales
+@router.get("/feedback", response_model=List[StudentFeedbackSchema])
+def list_student_feedback(
+    student_id: Optional[int] = None,
+    evaluation_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100,
+    order_dir: str = "desc",
+    current_admin: UserModel = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    query = db.query(StudentFeedbackModel)
+    if student_id is not None:
+        query = query.filter(StudentFeedbackModel.user_id == student_id)
+    if evaluation_id is not None:
+        query = query.filter(StudentFeedbackModel.evaluation_id == evaluation_id)
+
+    # Ordenar por fecha de creación
+    if order_dir.lower() == "asc":
+        query = query.order_by(StudentFeedbackModel.created_at.asc())
+    else:
+        query = query.order_by(StudentFeedbackModel.created_at.desc())
+
+    return query.offset(skip).limit(limit).all()
