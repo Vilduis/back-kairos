@@ -17,6 +17,10 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+@router.get("/me", response_model=UserSchema)
+def read_me(current_user: UserModel = Depends(get_current_user)):
+    return current_user
+
 @router.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(UserModel).filter(UserModel.email == form_data.username).first()
