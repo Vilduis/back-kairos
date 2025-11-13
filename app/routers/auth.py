@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from datetime import datetime, timedelta, timezone
 import secrets
 
@@ -23,7 +24,9 @@ def read_me(current_user: UserModel = Depends(get_current_user)):
 
 @router.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(UserModel).filter(UserModel.email == form_data.username).first()
+    # Normalizar correo a minúsculas para autenticación
+    username_lower = form_data.username.lower()
+    user = db.query(UserModel).filter(func.lower(UserModel.email) == username_lower).first()
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -36,7 +39,8 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     user.last_login = datetime.now(timezone.utc)
     db.add(user)
     db.commit()
-    access_token = create_access_token(data={"sub": user.email})
+    # Firmar token con el correo normalizado
+    access_token = create_access_token(data={"sub": user.email.lower()})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/signup", response_model=UserSchema)
@@ -53,7 +57,7 @@ def create_student(user: UserCreate, db: Session = Depends(get_db)):
     hashed_password = get_password_hash(user.password)
     db_user = UserModel(
         full_name=user.full_name,
-        email=user.email,
+        email=user.email.lower(),
         password_hash=hashed_password,
         educational_institution=user.educational_institution,
         role=user.role
@@ -66,7 +70,8 @@ def create_student(user: UserCreate, db: Session = Depends(get_db)):
 # Solicitar recuperación de contraseña
 @router.post("/password-reset/request")
 def request_password_reset(payload: PasswordResetRequest, db: Session = Depends(get_db)):
-    user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+    # Buscar sin sensibilidad a mayúsculas/minúsculas
+    user = db.query(UserModel).filter(func.lower(UserModel.email) == payload.email.lower()).first()
     if user:
         token = secrets.token_urlsafe(32)
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=getattr(settings, "PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", 60))

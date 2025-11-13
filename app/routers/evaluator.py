@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from typing import List, Optional
 
 from ..db import get_db
@@ -55,10 +56,11 @@ def update_evaluator_profile(
         current_evaluator.full_name = user_update.full_name
     if user_update.email is not None:
         # Verificar que el email no esté en uso
-        existing_user = db.query(UserModel).filter(UserModel.email == user_update.email).first()
+        # Comprobar colisión de email sin sensibilidad a mayúsculas/minúsculas
+        existing_user = db.query(UserModel).filter(func.lower(UserModel.email) == user_update.email.lower()).first()
         if existing_user and existing_user.user_id != current_evaluator.user_id:
             raise HTTPException(status_code=400, detail="Email ya está en uso")
-        current_evaluator.email = user_update.email
+        current_evaluator.email = user_update.email.lower()
     if user_update.educational_institution is not None:
         current_evaluator.educational_institution = user_update.educational_institution
 

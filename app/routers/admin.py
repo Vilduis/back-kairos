@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from sqlalchemy import or_
 from typing import List, Optional
 
@@ -44,10 +45,11 @@ def update_admin_profile(
         current_admin.full_name = user_update.full_name
     if user_update.email is not None:
         # Verificar que el email no esté en uso
-        existing_user = db.query(UserModel).filter(UserModel.email == user_update.email).first()
+        # Comprobar colisión de email sin sensibilidad a mayúsculas/minúsculas
+        existing_user = db.query(UserModel).filter(func.lower(UserModel.email) == user_update.email.lower()).first()
         if existing_user and existing_user.user_id != current_admin.user_id:
             raise HTTPException(status_code=400, detail="Email ya está en uso")
-        current_admin.email = user_update.email
+        current_admin.email = user_update.email.lower()
     if user_update.educational_institution is not None:
         current_admin.educational_institution = user_update.educational_institution
 
@@ -66,7 +68,8 @@ def create_user(
     db: Session = Depends(get_db)
 ):
     # Verificar si el usuario ya existe
-    db_user = db.query(UserModel).filter(UserModel.email == user.email).first()
+    # Verificar si el usuario ya existe (búsqueda case-insensitive)
+    db_user = db.query(UserModel).filter(func.lower(UserModel.email) == user.email.lower()).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email ya registrado")
     
@@ -77,7 +80,7 @@ def create_user(
     hashed_password = get_password_hash(user.password)
     db_user = UserModel(
         full_name=user.full_name,
-        email=user.email,
+        email=user.email.lower(),
         password_hash=hashed_password,
         educational_institution=user.educational_institution,
         role=user.role
@@ -154,10 +157,11 @@ def update_user(
         user.full_name = user_update.full_name
     if user_update.email is not None:
         # Verificar que el email no esté en uso
-        existing_user = db.query(UserModel).filter(UserModel.email == user_update.email).first()
+        # Comprobar colisión de email sin sensibilidad a mayúsculas/minúsculas
+        existing_user = db.query(UserModel).filter(func.lower(UserModel.email) == user_update.email.lower()).first()
         if existing_user and existing_user.user_id != user_id:
             raise HTTPException(status_code=400, detail="Email ya está en uso")
-        user.email = user_update.email
+        user.email = user_update.email.lower()
     if user_update.educational_institution is not None:
         user.educational_institution = user_update.educational_institution
     if user_update.role is not None:
