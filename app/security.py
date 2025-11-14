@@ -3,6 +3,9 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 from .config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -27,7 +30,11 @@ def verify_token(token: str):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
+            logger.warning("JWT decode succeeded but 'sub' missing")
             return None
         return email
-    except JWTError:
+    except JWTError as e:
+        # Registrar el motivo exacto del fallo para diagnósticos en producción
+        # (expirado, firma inválida, formato incorrecto, etc.)
+        logger.warning("JWT decode failed: %s", str(e))
         return None
