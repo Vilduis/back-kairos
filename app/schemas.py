@@ -33,6 +33,17 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class TokenUser(BaseModel):
+    user_id: int
+    full_name: str
+    email: EmailStr
+    role: str
+
+class TokenWithUser(BaseModel):
+    access_token: str
+    token_type: str
+    user: TokenUser
+
 class TokenData(BaseModel):
     email: Optional[str] = None
 

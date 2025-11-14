@@ -7,7 +7,7 @@ import secrets
 
 from ..db import get_db
 from ..models import User as UserModel, PasswordReset as PasswordResetModel
-from ..schemas import User as UserSchema, UserCreate, Token, PasswordResetRequest, PasswordResetConfirm
+from ..schemas import User as UserSchema, UserCreate, TokenWithUser, PasswordResetRequest, PasswordResetConfirm
 from ..security import verify_password, get_password_hash, create_access_token
 from ..deps import get_current_user
 from ..config import settings
@@ -22,7 +22,7 @@ router = APIRouter(
 def read_me(current_user: UserModel = Depends(get_current_user)):
     return current_user
 
-@router.post("/token", response_model=Token)
+@router.post("/token", response_model=TokenWithUser)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # Normalizar correo a minúsculas para autenticación
     username_lower = form_data.username.lower()
@@ -41,7 +41,16 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     db.commit()
     # Firmar token con el correo normalizado
     access_token = create_access_token(data={"sub": user.email.lower()})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "user_id": user.user_id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "role": user.role,
+        },
+    }
 
 @router.post("/signup", response_model=UserSchema)
 def create_student(user: UserCreate, db: Session = Depends(get_db)):
