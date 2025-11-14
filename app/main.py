@@ -11,6 +11,7 @@ from . import models
 from .routers import auth, student, admin, evaluator, chat, recommendation
 from .config import settings
 from .deps import get_current_user
+import logging
 from .services.model_service import init_recommender_artifacts
 from .db import SessionLocal
 from .seeds import seed_riasec_questions, seed_default_admins
@@ -29,6 +30,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Loggear las CORS origins efectivas para verificación en producción
+try:
+    logging.getLogger(__name__).info(f"CORS_ORIGINS configuradas: {settings.CORS_ORIGINS}")
+except Exception:
+    pass
 
 # Incluir routers
 app.include_router(auth.router)
