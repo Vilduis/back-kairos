@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     
     # App
     DEBUG: bool = True
-    CORS_ORIGINS: List[str] = ["https://kairos-pe.netlify.app/"]
+    CORS_ORIGINS: List[str] = ["https://karios.netlify.app"]
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
     SEED_ON_STARTUP: bool = False
 
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     SMTP_STARTTLS: bool = True
 
     # Frontend URL para construir enlaces de recuperación
-    FRONTEND_URL: str = "https://kairos-pe.netlify.app/"
+    FRONTEND_URL: str = "https://karios.netlify.app"
     PASSWORD_RESET_PATH: str = "/reset-password"
     
 settings = Settings()
