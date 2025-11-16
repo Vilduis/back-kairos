@@ -286,6 +286,10 @@ def list_student_feedback(
     db: Session = Depends(get_db)
 ):
     query = db.query(StudentFeedbackModel)
+
+    # Sanitizar filas inválidas que rompen la validación del esquema (user_id nulo)
+    query = query.filter(StudentFeedbackModel.user_id.isnot(None))
+
     if student_id is not None:
         query = query.filter(StudentFeedbackModel.user_id == student_id)
     if evaluation_id is not None:
