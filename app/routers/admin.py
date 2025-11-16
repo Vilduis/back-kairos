@@ -287,7 +287,7 @@ def list_student_feedback(
 ):
     query = db.query(StudentFeedbackModel)
 
-    # Sanitizar filas inválidas que rompen la validación del esquema (user_id nulo)
+    # Solo consideramos feedback válidos (vinculados a un usuario)
     query = query.filter(StudentFeedbackModel.user_id.isnot(None))
 
     if student_id is not None:
@@ -302,3 +302,20 @@ def list_student_feedback(
         query = query.order_by(StudentFeedbackModel.created_at.desc())
 
     return query.offset(skip).limit(limit).all()
+
+
+# Eliminar feedback "huérfano" (sin estudiante asociado)
+@router.delete("/feedback/orphans")
+def delete_orphan_feedback(
+    current_admin: UserModel = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    query = db.query(StudentFeedbackModel).filter(
+        StudentFeedbackModel.user_id.is_(None)
+    )
+    deleted = query.count()
+    if deleted == 0:
+        return {"detail": "No hay feedback huérfano para eliminar", "deleted": 0}
+    query.delete(synchronize_session=False)
+    db.commit()
+    return {"detail": "Feedback huérfano eliminado correctamente", "deleted": deleted}
