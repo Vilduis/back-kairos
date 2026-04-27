@@ -19,8 +19,7 @@ from .seeds import seed_riasec_questions, seed_default_admins
 
 logger = logging.getLogger(__name__)
 
-if settings.DEBUG:
-    Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Vocational Chatbot API", debug=settings.DEBUG)
 
