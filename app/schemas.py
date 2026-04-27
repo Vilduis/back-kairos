@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -20,13 +20,12 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class User(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: int
     created_at: datetime
     last_login: Optional[datetime] = None
     is_active: bool
-
-    class Config:
-        from_attributes = True
 
 # Auth Schemas
 class Token(BaseModel):
@@ -64,14 +63,13 @@ class ChatSessionCreate(ChatSessionBase):
     user_id: int
 
 class ChatSession(ChatSessionBase):
+    model_config = ConfigDict(from_attributes=True)
+
     session_id: int
     user_id: int
     started_at: datetime
     last_activity: datetime
     status: str
-
-    class Config:
-        from_attributes = True
 
 class ChatMessageBase(BaseModel):
     message_type: str
@@ -82,12 +80,11 @@ class ChatMessageCreate(ChatMessageBase):
     session_id: int
 
 class ChatMessage(ChatMessageBase):
+    model_config = ConfigDict(from_attributes=True)
+
     message_id: int
     session_id: int
     sent_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Evaluation Schemas
 class EvaluationBase(BaseModel):
@@ -98,6 +95,8 @@ class EvaluationCreate(EvaluationBase):
     session_id: int
 
 class Evaluation(EvaluationBase):
+    model_config = ConfigDict(from_attributes=True)
+
     evaluation_id: int
     user_id: int
     session_id: int
@@ -105,9 +104,6 @@ class Evaluation(EvaluationBase):
     completed_at: Optional[datetime] = None
     status: str
     progress: float
-
-    class Config:
-        from_attributes = True
 
 # Question Schemas
 class QuestionBase(BaseModel):
@@ -123,10 +119,9 @@ class QuestionCreate(QuestionBase):
     pass
 
 class Question(QuestionBase):
-    question_id: int
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    question_id: int
 
 # Answer Schemas
 class UserAnswerBase(BaseModel):
@@ -138,13 +133,12 @@ class UserAnswerCreate(UserAnswerBase):
     question_id: int
 
 class UserAnswer(UserAnswerBase):
+    model_config = ConfigDict(from_attributes=True)
+
     answer_id: int
     evaluation_id: int
     question_id: int
     answered_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Para responder en sesión sin exponer evaluation_id
 class UserSessionAnswerCreate(UserAnswerBase):
@@ -160,12 +154,11 @@ class EvaluationResultCreate(EvaluationResultBase):
     evaluation_id: int
 
 class EvaluationResult(EvaluationResultBase):
+    model_config = ConfigDict(from_attributes=True)
+
     result_id: int
     evaluation_id: int
     generated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Feedback Schemas
 class StudentFeedbackBase(BaseModel):
@@ -177,13 +170,12 @@ class StudentFeedbackCreate(StudentFeedbackBase):
     user_id: int
 
 class StudentFeedback(StudentFeedbackBase):
+    model_config = ConfigDict(from_attributes=True)
+
     feedback_id: int
     evaluation_id: int
     user_id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Enviar feedback del estudiante sin requerir user_id explícito
 class StudentFeedbackSubmit(StudentFeedbackBase):
@@ -198,13 +190,12 @@ class EvaluatorAssignmentCreate(EvaluatorAssignmentBase):
     student_id: int
 
 class EvaluatorAssignment(EvaluatorAssignmentBase):
+    model_config = ConfigDict(from_attributes=True)
+
     assignment_id: int
     evaluator_id: int
     student_id: int
     assigned_date: datetime
-
-    class Config:
-        from_attributes = True
 
 # Evaluator Comment Schemas
 class EvaluatorCommentBase(BaseModel):
@@ -215,10 +206,9 @@ class EvaluatorCommentCreate(EvaluatorCommentBase):
     evaluator_id: int
 
 class EvaluatorComment(EvaluatorCommentBase):
+    model_config = ConfigDict(from_attributes=True)
+
     comment_id: int
     evaluation_id: int
     evaluator_id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True

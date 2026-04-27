@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # App
-    DEBUG: bool = True
-    CORS_ORIGINS: List[str] = ["https://kairos-pe.vercel.app"]
+    DEBUG: bool = False
+    CORS_ORIGINS: List[str]
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
     SEED_ON_STARTUP: bool = False
 
@@ -26,16 +26,12 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: Optional[str] = None
 
-    # Email / SMTP (opcionales pero recomendados para recuperación)
-    SMTP_HOST: Optional[str] = None
-    SMTP_PORT: int = 587
-    SMTP_USERNAME: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
-    SMTP_FROM: Optional[str] = None
-    SMTP_STARTTLS: bool = True
+    # Resend
+    RESEND_API_KEY: Optional[str] = None
+    RESEND_FROM: Optional[str] = "onboarding@resend.dev"
 
-    # Frontend URL para construir enlaces de recuperación
-    FRONTEND_URL: str = "https://kairos-pe.vercel.app"
+    # Frontend
+    FRONTEND_URL: str
     PASSWORD_RESET_PATH: str = "/reset-password"
     
 settings = Settings()

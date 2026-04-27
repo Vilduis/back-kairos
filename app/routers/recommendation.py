@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 from ..services.model_service import (
     normalize_1_to_5_to_0_to_1,
     convert_0_to_1_to_1_to_5,
-    predict_profile_from_text_v6,
+    predict_profile_from_text_v8,
     riasec_types,
     _get_recommendations,
 )
@@ -56,7 +56,7 @@ def recomendar_por_chat(payload: ChatTextInput) -> Dict[str, Any]:
     - Usa recomendador interno (cosine_similarity)
     - Devuelve Top 3 carreras y el perfil convertido a 1-5
     """
-    profile_0_to_1 = predict_profile_from_text_v6(payload.texto)
+    profile_0_to_1 = predict_profile_from_text_v8(payload.texto)
     profile_1_to_5 = convert_0_to_1_to_1_to_5(profile_0_to_1)
     top3 = _get_recommendations(profile_0_to_1, top_n=3)
     return {"riasec_profile": profile_1_to_5, "top3_careers": top3}

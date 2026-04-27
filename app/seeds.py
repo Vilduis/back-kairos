@@ -1,6 +1,9 @@
+import logging
 from sqlalchemy.orm import Session
 from .models import Question as QuestionModel, User as UserModel
 from .security import get_password_hash
+
+logger = logging.getLogger(__name__)
 
 
 def seed_riasec_questions(db: Session) -> dict:
@@ -122,9 +125,8 @@ def seed_riasec_questions(db: Session) -> dict:
                     else:
                         skipped += 1
                     continue
-                except Exception:
-                    # Si algo falla en actualización, seguimos con inserción para no bloquear seed
-                    pass
+                except Exception as e:
+                    logger.warning("Error actualizando pregunta existente en seed, se reintentará inserción: %s", e)
             q = QuestionModel(
                 question_text=text,
                 question_type="scale",
@@ -159,7 +161,9 @@ def seed_default_admins(db: Session) -> dict:
             "email": os.getenv("ADMIN_KETY_EMAIL", "katy@gmail.com"),
         },
     ]
-    password = os.getenv("ADMIN_PASSWORD", "#KV202502")
+    password = os.getenv("ADMIN_PASSWORD")
+    if not password:
+        return {"inserted": 0, "skipped": 0, "details": [], "reason": "ADMIN_PASSWORD no configurado"}
 
     results = []
     for adm in admins:

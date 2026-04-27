@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
-from typing import List, Optional
+from typing import List
 
 from ..db import get_db
 from ..models import (
@@ -13,13 +12,14 @@ from ..models import (
 )
 from ..schemas import (
     User as UserSchema,
+    UserUpdate,
     Evaluation as EvaluationSchema,
     EvaluationResult as EvaluationResultSchema,
     EvaluatorComment as EvaluatorCommentSchema,
     EvaluatorCommentBase,
-    UserUpdate,
 )
-from ..deps import get_current_user
+from ..deps import get_current_evaluator, apply_profile_update
+from ..enums import UserRole
 
 router = APIRouter(
     prefix="/evaluator",
@@ -27,141 +27,82 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# Verificar que el usuario es evaluador
-def get_current_evaluator(current_user: UserModel = Depends(get_current_user)):
-    if current_user.role != "evaluator":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Se requieren privilegios de evaluador"
-        )
-    return current_user
 
-# Obtener perfil del evaluador actual
 @router.get("/me", response_model=UserSchema)
-def read_evaluator_profile(
-    current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
-):
+def read_evaluator_profile(current_evaluator: UserModel = Depends(get_current_evaluator)):
     return current_evaluator
 
-# Actualizar perfil del evaluador
+
 @router.put("/me", response_model=UserSchema)
 def update_evaluator_profile(
     user_update: UserUpdate,
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Actualizar campos permitidos
-    if user_update.full_name is not None:
-        current_evaluator.full_name = user_update.full_name
-    if user_update.email is not None:
-        # Verificar que el email no esté en uso
-        # Comprobar colisión de email sin sensibilidad a mayúsculas/minúsculas
-        existing_user = db.query(UserModel).filter(func.lower(UserModel.email) == user_update.email.lower()).first()
-        if existing_user and existing_user.user_id != current_evaluator.user_id:
-            raise HTTPException(status_code=400, detail="Email ya está en uso")
-        current_evaluator.email = user_update.email.lower()
-    if user_update.educational_institution is not None:
-        current_evaluator.educational_institution = user_update.educational_institution
-
-    # No permitir cambios de rol ni estado desde este endpoint
-    # (user_update.role, user_update.is_active se ignoran)
-
+    apply_profile_update(current_evaluator, user_update.full_name, user_update.email, user_update.educational_institution, db)
     db.commit()
     db.refresh(current_evaluator)
     return current_evaluator
 
-# Obtener estudiantes asignados al evaluador
+
 @router.get("/assignments", response_model=List[UserSchema])
 def get_assigned_students(
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Obtener IDs de estudiantes asignados
     assignments = db.query(EvaluatorAssignment).filter(
         EvaluatorAssignment.evaluator_id == current_evaluator.user_id
     ).all()
-
-    student_ids = [assignment.student_id for assignment in assignments]
-
-    # Obtener información de los estudiantes
-    students = db.query(UserModel).filter(
+    student_ids = [a.student_id for a in assignments]
+    return db.query(UserModel).filter(
         UserModel.user_id.in_(student_ids),
-        UserModel.role == "student"
+        UserModel.role == UserRole.STUDENT,
     ).all()
 
-    return students
 
-# Obtener evaluaciones de un estudiante específico
+def _require_student_assigned(evaluator_id: int, student_id: int, db: Session) -> None:
+    assignment = db.query(EvaluatorAssignment).filter(
+        EvaluatorAssignment.evaluator_id == evaluator_id,
+        EvaluatorAssignment.student_id == student_id,
+    ).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Este estudiante no está asignado a ti")
+
+
 @router.get("/students/{student_id}/evaluations", response_model=List[EvaluationSchema])
 def get_student_evaluations(
     student_id: int,
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Verificar que el estudiante está asignado a este evaluador
-    assignment = db.query(EvaluatorAssignment).filter(
-        EvaluatorAssignment.evaluator_id == current_evaluator.user_id,
-        EvaluatorAssignment.student_id == student_id
-    ).first()
+    _require_student_assigned(current_evaluator.user_id, student_id, db)
+    return db.query(EvaluationModel).filter(EvaluationModel.user_id == student_id).all()
 
-    if not assignment:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Este estudiante no está asignado a ti"
-        )
 
-    # Obtener evaluaciones del estudiante
-    evaluations = db.query(EvaluationModel).filter(
-        EvaluationModel.user_id == student_id
-    ).all()
-
-    return evaluations
-
-# Obtener resultados detallados de una evaluación
 @router.get("/evaluations/{evaluation_id}/results", response_model=EvaluationResultSchema)
 def get_evaluation_results(
     evaluation_id: int,
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Obtener la evaluación
-    evaluation = db.query(EvaluationModel).filter(
-        EvaluationModel.evaluation_id == evaluation_id
-    ).first()
-
+    evaluation = db.query(EvaluationModel).filter(EvaluationModel.evaluation_id == evaluation_id).first()
     if not evaluation:
         raise HTTPException(status_code=404, detail="Evaluación no encontrada")
-
-    # Verificar que el estudiante está asignado a este evaluador
-    assignment = db.query(EvaluatorAssignment).filter(
-        EvaluatorAssignment.evaluator_id == current_evaluator.user_id,
-        EvaluatorAssignment.student_id == evaluation.user_id
-    ).first()
-
-    if not assignment:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes acceso a esta evaluación"
-        )
-
-    # Obtener resultados de la evaluación
+    _require_student_assigned(current_evaluator.user_id, evaluation.user_id, db)
     results = db.query(EvaluationResultModel).filter(
         EvaluationResultModel.evaluation_id == evaluation_id
     ).first()
-
     if not results:
         raise HTTPException(status_code=404, detail="Resultados no encontrados")
-
     return results
 
-# Listar resultados de estudiantes asignados al evaluador
+
 @router.get("/assigned/results", response_model=List[EvaluationResultSchema])
 def list_assigned_results(
     skip: int = 0,
     limit: int = 100,
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     assignments = db.query(EvaluatorAssignment).filter(
         EvaluatorAssignment.evaluator_id == current_evaluator.user_id
@@ -169,57 +110,43 @@ def list_assigned_results(
     student_ids = [a.student_id for a in assignments]
     if not student_ids:
         return []
-
-    results = db.query(EvaluationResultModel).join(
+    return db.query(EvaluationResultModel).join(
         EvaluationModel, EvaluationResultModel.evaluation_id == EvaluationModel.evaluation_id
     ).filter(
         EvaluationModel.user_id.in_(student_ids)
     ).order_by(EvaluationModel.completed_at.desc()).offset(skip).limit(limit).all()
-    return results
 
-# Listar resultados de un estudiante asignado específico
+
 @router.get("/students/{student_id}/results", response_model=List[EvaluationResultSchema])
 def get_student_results(
     student_id: int,
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    assignment = db.query(EvaluatorAssignment).filter(
-        EvaluatorAssignment.evaluator_id == current_evaluator.user_id,
-        EvaluatorAssignment.student_id == student_id
-    ).first()
-    if not assignment:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Este estudiante no está asignado a ti"
-        )
-    results = db.query(EvaluationResultModel).join(
+    _require_student_assigned(current_evaluator.user_id, student_id, db)
+    return db.query(EvaluationResultModel).join(
         EvaluationModel, EvaluationResultModel.evaluation_id == EvaluationModel.evaluation_id
     ).filter(
         EvaluationModel.user_id == student_id
     ).order_by(EvaluationModel.completed_at.desc()).all()
-    return results
 
-# Agregar comentario del evaluador a una evaluación
+
+def _require_evaluation_access(evaluator_id: int, evaluation_id: int, db: Session) -> EvaluationModel:
+    evaluation = db.query(EvaluationModel).filter(EvaluationModel.evaluation_id == evaluation_id).first()
+    if not evaluation:
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+    _require_student_assigned(evaluator_id, evaluation.user_id, db)
+    return evaluation
+
+
 @router.post("/evaluations/{evaluation_id}/comments", response_model=EvaluatorCommentSchema)
 def add_evaluation_comment(
     evaluation_id: int,
     payload: EvaluatorCommentBase,
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    evaluation = db.query(EvaluationModel).filter(EvaluationModel.evaluation_id == evaluation_id).first()
-    if not evaluation:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
-    assignment = db.query(EvaluatorAssignment).filter(
-        EvaluatorAssignment.evaluator_id == current_evaluator.user_id,
-        EvaluatorAssignment.student_id == evaluation.user_id
-    ).first()
-    if not assignment:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes acceso a esta evaluación"
-        )
+    _require_evaluation_access(current_evaluator.user_id, evaluation_id, db)
     comment = EvaluatorCommentModel(
         evaluation_id=evaluation_id,
         evaluator_id=current_evaluator.user_id,
@@ -230,24 +157,14 @@ def add_evaluation_comment(
     db.refresh(comment)
     return comment
 
-# Listar comentarios de una evaluación
+
 @router.get("/evaluations/{evaluation_id}/comments", response_model=List[EvaluatorCommentSchema])
 def list_evaluation_comments(
     evaluation_id: int,
     current_evaluator: UserModel = Depends(get_current_evaluator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    evaluation = db.query(EvaluationModel).filter(EvaluationModel.evaluation_id == evaluation_id).first()
-    if not evaluation:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
-    assignment = db.query(EvaluatorAssignment).filter(
-        EvaluatorAssignment.evaluator_id == current_evaluator.user_id,
-        EvaluatorAssignment.student_id == evaluation.user_id
-    ).first()
-    if not assignment:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes acceso a esta evaluación"
-        )
-    comments = db.query(EvaluatorCommentModel).filter(EvaluatorCommentModel.evaluation_id == evaluation_id).order_by(EvaluatorCommentModel.created_at.desc()).all()
-    return comments
+    _require_evaluation_access(current_evaluator.user_id, evaluation_id, db)
+    return db.query(EvaluatorCommentModel).filter(
+        EvaluatorCommentModel.evaluation_id == evaluation_id
+    ).order_by(EvaluatorCommentModel.created_at.desc()).all()

@@ -1,4 +1,5 @@
 # model_service.py (limpio)
+import logging
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 import numpy as np
@@ -6,6 +7,10 @@ import joblib
 import os
 import json
 from sklearn.metrics.pairwise import cosine_similarity
+
+logger = logging.getLogger(__name__)
+
+from ..utils.text import normalize_text as _normalize_text
 
 # --- Imports de tus Modelos de DB ---
 from ..models import (
@@ -19,59 +24,45 @@ from ..models import (
 
 from ..config import settings
 
-# --- Artefactos nuevos V6 ---
-V6_MODEL_FILE = 'modelo_riasec_v6.pkl'
-V6_VECTORIZER_FILE = 'vectorizer_riasec_v6.pkl'
-CAREERS_JSON_FILE = 'careers_db_v6.json'
+# --- Artefactos V8 ---
+V8_PIPELINE_FILE = 'pipeline_riasec_v8_20260427.pkl'
+CAREERS_JSON_FILE = 'careers_db_v8_20260427.json'
 
 riasec_types = ['R', 'I', 'A', 'S', 'E', 'C']  # Importante mantener el orden
 
-# Artefactos V6 (cargados bajo demanda)
-v6_model = None
-v6_vectorizer = None
+# Pipeline V8 (cargado bajo demanda)
+v8_pipeline = None
 CAREERS_DB: List[Dict[str, Any]] = []
 CAREERS_VECTORS: Optional[np.ndarray] = None
 
 
-def load_v6_models_if_needed():
-    """Carga los artefactos del modelo V6 si aún no están en memoria."""
-    global v6_model, v6_vectorizer
-    if v6_model is None:
-        model_path = get_artifact_path(V6_MODEL_FILE)
-        print(f"Cargando modelo V6 desde: {model_path}")
+def load_v8_pipeline_if_needed():
+    """Carga el pipeline V8 si aún no está en memoria."""
+    global v8_pipeline
+    if v8_pipeline is None:
+        path = get_artifact_path(V8_PIPELINE_FILE)
+        logger.info("Cargando pipeline V8 desde: %s", path)
         try:
-            v6_model = joblib.load(model_path)
-            print("✅ Modelo V6 cargado.")
+            v8_pipeline = joblib.load(path)
+            logger.info("Pipeline V8 cargado.")
         except FileNotFoundError:
-            print(f"❌ ERROR: No se encontró el archivo del modelo V6: {model_path}")
+            logger.error("No se encontró el pipeline V8: %s", path)
         except Exception as e:
-            print(f"❌ ERROR al cargar el modelo V6: {e}")
-    if v6_vectorizer is None:
-        vec_path = get_artifact_path(V6_VECTORIZER_FILE)
-        print(f"Cargando vectorizador V6 desde: {vec_path}")
-        try:
-            v6_vectorizer = joblib.load(vec_path)
-            print("✅ Vectorizador V6 cargado.")
-        except FileNotFoundError:
-            print(f"❌ ERROR: No se encontró el archivo del vectorizador V6: {vec_path}")
-        except Exception as e:
-            print(f"❌ ERROR al cargar el vectorizador V6: {e}")
+            logger.error("Error al cargar el pipeline V8: %s", e)
 
 
 def init_recommender_artifacts():
-    """Carga los 3 paquetes al iniciar el servidor y prepara los vectores.
-    - modelo_riasec_v6.pkl
-    - vectorizer_riasec_v6.pkl
-    - careers_db_v6.json -> CAREERS_DB y CAREERS_VECTORS (numpy.array)
+    """Carga los artefactos V8 al iniciar el servidor y prepara los vectores.
+    - pipeline_riasec_v8_20260427.pkl -> v8_pipeline
+    - careers_db_v8_20260427.json -> CAREERS_DB y CAREERS_VECTORS (numpy.array)
     """
     global CAREERS_DB, CAREERS_VECTORS
-    # Cargar modelo y vectorizador
-    load_v6_models_if_needed()
+    load_v8_pipeline_if_needed()
 
     # Cargar JSON de carreras
     try:
         json_path = get_artifact_path(CAREERS_JSON_FILE)
-        print(f"Cargando base de carreras desde: {json_path}")
+        logger.info("Cargando base de carreras desde: %s", json_path)
         with open(json_path, "r", encoding="utf-8") as f:
             CAREERS_DB = json.load(f)
         # Procesar a numpy.array una sola vez
@@ -79,13 +70,13 @@ def init_recommender_artifacts():
             np.array(item.get("riasec", [0, 0, 0, 0, 0, 0]), dtype=float)
             for item in CAREERS_DB
         ], dtype=float)
-        print(f"✅ Base de carreras cargada: {len(CAREERS_DB)} carreras")
+        logger.info("Base de carreras cargada: %d carreras", len(CAREERS_DB))
     except FileNotFoundError:
-        print(f"❌ ERROR: No se encontró {CAREERS_JSON_FILE}")
+        logger.error("No se encontró %s", CAREERS_JSON_FILE)
         CAREERS_DB = []
         CAREERS_VECTORS = np.zeros((0, 6), dtype=float)
     except Exception as e:
-        print(f"❌ ERROR al cargar {CAREERS_JSON_FILE}: {e}")
+        logger.error("Error al cargar %s: %s", CAREERS_JSON_FILE, e)
         CAREERS_DB = []
         CAREERS_VECTORS = np.zeros((0, 6), dtype=float)
 
@@ -127,7 +118,8 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
                     "C": "C", "CONVENCIONAL": "C", "CONVENTIONAL": "C",
                 }
                 cat_key = synonyms.get(key_raw, key_raw if key_raw in riasec_types else None)
-            except Exception:
+            except Exception as e:
+                logger.warning("Error resolviendo categoría RIASEC para pregunta %s: %s", q.question_id, e)
                 cat_key = None
 
         # Agregar texto libre de preguntas abiertas
@@ -148,12 +140,13 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
                     if isinstance(sel, list) and len(sel) > 0:
                         try:
                             val = float(sel[0])
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning("Error convirtiendo selected_options[0] a float: %s", e)
             if val is None and getattr(q, "question_type", None) == "scale" and ans.answer_text:
                 t = str(ans.answer_text).strip().replace(",", ".")
                 val = float(t)
-        except Exception:
+        except Exception as e:
+            logger.warning("Error parseando valor de respuesta para evaluación %s: %s", evaluation_id, e)
             val = None
         if val is not None and cat_key and cat_key in mcq_scores:
             mcq_scores[cat_key] += val
@@ -169,8 +162,6 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
         text_parts.append(m.content)
 
     # Deduplicar y normalizar texto antes de unir
-    def _normalize_text(s: str) -> str:
-        return " ".join((s or "").strip().split())
     seen = set()
     normalized_parts: List[str] = []
     for t in filter(None, text_parts):
@@ -203,34 +194,21 @@ def convert_0_to_1_to_1_to_5(profile_0_to_1: dict[str, float]) -> dict[str, floa
     return scaled
 
 
-def predict_profile_from_text_v6(text: str) -> dict[str, float]:
-    """Usa el vectorizador y modelo V6 para predecir el perfil RIASEC (0-1)."""
-    global v6_model, v6_vectorizer
+def predict_profile_from_text_v8(text: str) -> dict[str, float]:
+    """Usa el pipeline V8 para predecir el perfil RIASEC (0-1)."""
+    global v8_pipeline
     if not text:
         return {r: 0.0 for r in riasec_types}
-    load_v6_models_if_needed()
-    if v6_model is None or v6_vectorizer is None:
+    load_v8_pipeline_if_needed()
+    if v8_pipeline is None:
         return {r: 0.0 for r in riasec_types}
     try:
-        X_input = v6_vectorizer.transform([text])
-        pred = v6_model.predict(X_input)[0]
+        pred = v8_pipeline.predict([text])[0]
         pred = np.clip(pred, 0.0, 1.0)
         return {letter: float(pred[i]) for i, letter in enumerate(riasec_types)}
     except Exception as e:
-        print(f"Error en predict_profile_from_text_v6: {e}")
+        logger.error("Error en predict_profile_from_text_v8: %s", e)
         return {r: 0.0 for r in riasec_types}
-
-
-# --- Base determinística de carreras (sin career.py) ---
-
-def code_to_riasec_vector(code: str) -> List[float]:
-    """Convierte un código tipo 'SEI' a vector ponderado RIASEC."""
-    weights = {"R": 0.1, "I": 0.1, "A": 0.1, "S": 0.1, "E": 0.1, "C": 0.1}
-    c = (code or "").upper().strip()
-    if len(c) > 0 and c[0] in weights: weights[c[0]] = 1.0
-    if len(c) > 1 and c[1] in weights: weights[c[1]] = 0.7
-    if len(c) > 2 and c[2] in weights: weights[c[2]] = 0.4
-    return [weights[letter] for letter in riasec_types]
 
 
 # --- Función Principal ---
@@ -264,8 +242,8 @@ def generate_and_save_results(db: Session, evaluation_id: int) -> EvaluationResu
 
     # Paso 2: Construir perfil según modo
     if (chat_mode or "guided") == "open":
-        load_v6_models_if_needed()
-        profile_0_to_1 = predict_profile_from_text_v6(answers_text)
+        load_v8_pipeline_if_needed()
+        profile_0_to_1 = predict_profile_from_text_v8(answers_text)
     else:
         max_mcq_per_dim = 6 * 5
         profile_1_to_5 = {}
@@ -278,7 +256,7 @@ def generate_and_save_results(db: Session, evaluation_id: int) -> EvaluationResu
     top3: List[Dict[str, Any]] = _get_recommendations(profile_0_to_1, top_n=3)
 
     mode_numeric = 1.0 if (chat_mode or "guided") == "open" else 0.0
-    metrics = {"model_version": 6.0, "source_mode": mode_numeric}
+    metrics = {"model_version": 8.0, "source_mode": mode_numeric}
 
     existing = (
         db.query(EvaluationResultModel)
@@ -389,8 +367,9 @@ def _get_recommendations(profile_0_to_1: Dict[str, float], top_n: int = 3) -> Li
                 "career": name,
                 "score": round(float(sims[i]), 2),
                 "description": _describe(name, c_vec),
+                "faculty": str(item.get("faculty", "")),
             })
         return output
     except Exception as e:
-        print(f"Error en _get_recommendations: {e}")
+        logger.error("Error en _get_recommendations: %s", e)
         return []

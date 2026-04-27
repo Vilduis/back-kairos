@@ -1,0 +1,782 @@
+[
+  {
+    "name": "Hotelería y Administración",
+    "faculty": "Administración en Hotelería y Turismo",
+    "riasec": [
+      0.4,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.05
+    ],
+    "code": "ESR"
+  },
+  {
+    "name": "Turismo y Administración",
+    "faculty": "Administración en Hotelería y Turismo",
+    "riasec": [
+      0.4,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.05
+    ],
+    "code": "ESR"
+  },
+  {
+    "name": "Gastronomía y Gestión Culinaria",
+    "faculty": "Administración en Hotelería y Turismo",
+    "riasec": [
+      0.7,
+      0.05,
+      0.05,
+      0.4,
+      1.0,
+      0.05
+    ],
+    "code": "ERS"
+  },
+  {
+    "name": "Arquitectura",
+    "faculty": "Arquitectura",
+    "riasec": [
+      0.4,
+      0.7,
+      1.0,
+      0.05,
+      0.05,
+      0.05
+    ],
+    "code": "AIR"
+  },
+  {
+    "name": "Música",
+    "faculty": "Artes Contemporáneas",
+    "riasec": [
+      0.05,
+      0.4,
+      1.0,
+      0.7,
+      0.05,
+      0.05
+    ],
+    "code": "ASI"
+  },
+  {
+    "name": "Artes Escénicas",
+    "faculty": "Artes Contemporáneas",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.7,
+      0.4,
+      0.05
+    ],
+    "code": "ASE"
+  },
+  {
+    "name": "Enfermería",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.05,
+      0.7,
+      0.4,
+      1.0,
+      0.05,
+      0.05
+    ],
+    "code": "SIA"
+  },
+  {
+    "name": "Farmacia y Bioquímica",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.05,
+      1.0,
+      0.05,
+      0.4,
+      0.7,
+      0.05
+    ],
+    "code": "IES"
+  },
+  {
+    "name": "Biología",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.7,
+      1.0,
+      0.05,
+      0.05,
+      0.4,
+      0.05
+    ],
+    "code": "IRE"
+  },
+  {
+    "name": "Ciencias de la Actividad Física y el Deporte",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.4,
+      0.7,
+      0.05,
+      1.0,
+      0.05,
+      0.05
+    ],
+    "code": "SIR"
+  },
+  {
+    "name": "Medicina",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.7,
+      1.0,
+      0.05,
+      0.4,
+      0.05,
+      0.05
+    ],
+    "code": "IRS"
+  },
+  {
+    "name": "Medicina Veterinaria",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.7,
+      1.0,
+      0.05,
+      0.4,
+      0.05,
+      0.05
+    ],
+    "code": "IRS"
+  },
+  {
+    "name": "Nutrición y Dietética",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.05,
+      0.7,
+      0.05,
+      1.0,
+      0.4,
+      0.05
+    ],
+    "code": "SIE"
+  },
+  {
+    "name": "Odontología",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.7,
+      1.0,
+      0.05,
+      0.4,
+      0.05,
+      0.05
+    ],
+    "code": "IRS"
+  },
+  {
+    "name": "Terapia Física",
+    "faculty": "Ciencias de la Salud",
+    "riasec": [
+      0.05,
+      0.7,
+      0.05,
+      1.0,
+      0.4,
+      0.05
+    ],
+    "code": "SIE"
+  },
+  {
+    "name": "Traducción e Interpretación Profesional",
+    "faculty": "Ciencias Humanas",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.7,
+      0.05,
+      0.4
+    ],
+    "code": "ASC"
+  },
+  {
+    "name": "Comunicación Audiovisual y Medios Interactivos",
+    "faculty": "Comunicaciones",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.4,
+      0.7,
+      0.05
+    ],
+    "code": "AES"
+  },
+  {
+    "name": "Comunicación e Imagen Empresarial",
+    "faculty": "Comunicaciones",
+    "riasec": [
+      0.05,
+      0.05,
+      0.7,
+      0.4,
+      1.0,
+      0.05
+    ],
+    "code": "EAS"
+  },
+  {
+    "name": "Comunicación y Marketing",
+    "faculty": "Comunicaciones",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.4,
+      0.7,
+      0.05
+    ],
+    "code": "AES"
+  },
+  {
+    "name": "Comunicación y Periodismo",
+    "faculty": "Comunicaciones",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.4,
+      0.7,
+      0.05
+    ],
+    "code": "AES"
+  },
+  {
+    "name": "Comunicación y Publicidad",
+    "faculty": "Comunicaciones",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.4,
+      0.7,
+      0.05
+    ],
+    "code": "AES"
+  },
+  {
+    "name": "Comunicación y Fotografía",
+    "faculty": "Comunicaciones",
+    "riasec": [
+      0.7,
+      0.05,
+      1.0,
+      0.05,
+      0.4,
+      0.05
+    ],
+    "code": "ARE"
+  },
+  {
+    "name": "Derecho",
+    "faculty": "Derecho",
+    "riasec": [
+      0.05,
+      0.05,
+      0.4,
+      0.7,
+      1.0,
+      0.05
+    ],
+    "code": "ESA"
+  },
+  {
+    "name": "Relaciones Internacionales",
+    "faculty": "Derecho",
+    "riasec": [
+      0.05,
+      0.4,
+      0.05,
+      1.0,
+      0.7,
+      0.05
+    ],
+    "code": "SEI"
+  },
+  {
+    "name": "Diseño Industrial",
+    "faculty": "Diseño",
+    "riasec": [
+      0.05,
+      0.7,
+      1.0,
+      0.05,
+      0.4,
+      0.05
+    ],
+    "code": "AIE"
+  },
+  {
+    "name": "Diseño Profesional de Interiores",
+    "faculty": "Diseño",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.4,
+      0.7,
+      0.05
+    ],
+    "code": "AES"
+  },
+  {
+    "name": "Diseño Profesional Gráfico",
+    "faculty": "Diseño",
+    "riasec": [
+      0.7,
+      0.05,
+      1.0,
+      0.05,
+      0.4,
+      0.05
+    ],
+    "code": "ARE"
+  },
+  {
+    "name": "Diseño y Gestión en Moda",
+    "faculty": "Diseño",
+    "riasec": [
+      0.05,
+      0.05,
+      1.0,
+      0.4,
+      0.7,
+      0.05
+    ],
+    "code": "AES"
+  },
+  {
+    "name": "Economía y Ciencia de Datos",
+    "faculty": "Economía",
+    "riasec": [
+      0.05,
+      1.0,
+      0.05,
+      0.05,
+      0.4,
+      0.7
+    ],
+    "code": "ICE"
+  },
+  {
+    "name": "Economía y Finanzas",
+    "faculty": "Economía",
+    "riasec": [
+      0.05,
+      1.0,
+      0.05,
+      0.05,
+      0.4,
+      0.7
+    ],
+    "code": "ICE"
+  },
+  {
+    "name": "Economía y Negocios Internacionales",
+    "faculty": "Economía",
+    "riasec": [
+      0.05,
+      1.0,
+      0.05,
+      0.05,
+      0.4,
+      0.7
+    ],
+    "code": "ICE"
+  },
+  {
+    "name": "Economía Gerencial",
+    "faculty": "Economía",
+    "riasec": [
+      0.05,
+      1.0,
+      0.05,
+      0.05,
+      0.4,
+      0.7
+    ],
+    "code": "ICE"
+  },
+  {
+    "name": "Ciencias Políticas",
+    "faculty": "Economía",
+    "riasec": [
+      0.05,
+      0.4,
+      0.05,
+      1.0,
+      0.7,
+      0.05
+    ],
+    "code": "SEI"
+  },
+  {
+    "name": "Educación y Gestión del Aprendizaje",
+    "faculty": "Educación",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      1.0,
+      0.7,
+      0.4
+    ],
+    "code": "SEC"
+  },
+  {
+    "name": "Ingeniería de Inteligencia Artificial",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.4,
+      0.7,
+      0.05,
+      0.05,
+      0.05,
+      1.0
+    ],
+    "code": "CIR"
+  },
+  {
+    "name": "Ingeniería de Ciberseguridad",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.4,
+      0.7,
+      0.05,
+      0.05,
+      0.05,
+      1.0
+    ],
+    "code": "CIR"
+  },
+  {
+    "name": "Ingeniería Biomédica",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.7,
+      1.0,
+      0.05,
+      0.4,
+      0.05,
+      0.05
+    ],
+    "code": "IRS"
+  },
+  {
+    "name": "Ciencias de la Computación",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.4,
+      0.7,
+      0.05,
+      0.05,
+      0.05,
+      1.0
+    ],
+    "code": "CIR"
+  },
+  {
+    "name": "Ingeniería Civil",
+    "faculty": "Ingeniería",
+    "riasec": [
+      1.0,
+      0.7,
+      0.05,
+      0.05,
+      0.4,
+      0.05
+    ],
+    "code": "RIE"
+  },
+  {
+    "name": "Ingeniería de Gestión Empresarial",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.05,
+      1.0,
+      0.05,
+      0.05,
+      0.4,
+      0.7
+    ],
+    "code": "ICE"
+  },
+  {
+    "name": "Ingeniería de Gestión Minera",
+    "faculty": "Ingeniería",
+    "riasec": [
+      1.0,
+      0.7,
+      0.05,
+      0.05,
+      0.4,
+      0.05
+    ],
+    "code": "RIE"
+  },
+  {
+    "name": "Ingeniería de Sistemas de Información",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.05,
+      0.7,
+      0.05,
+      0.05,
+      0.4,
+      1.0
+    ],
+    "code": "CIE"
+  },
+  {
+    "name": "Ingeniería de Software",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.4,
+      0.7,
+      0.05,
+      0.05,
+      0.05,
+      1.0
+    ],
+    "code": "CIR"
+  },
+  {
+    "name": "Ingeniería Electrónica",
+    "faculty": "Ingeniería",
+    "riasec": [
+      1.0,
+      0.7,
+      0.05,
+      0.05,
+      0.05,
+      0.4
+    ],
+    "code": "RIC"
+  },
+  {
+    "name": "Ingeniería Industrial",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.05,
+      1.0,
+      0.05,
+      0.05,
+      0.4,
+      0.7
+    ],
+    "code": "ICE"
+  },
+  {
+    "name": "Ingeniería Mecatrónica",
+    "faculty": "Ingeniería",
+    "riasec": [
+      1.0,
+      0.7,
+      0.05,
+      0.4,
+      0.05,
+      0.05
+    ],
+    "code": "RIS"
+  },
+  {
+    "name": "Ingeniería Ambiental",
+    "faculty": "Ingeniería",
+    "riasec": [
+      0.7,
+      1.0,
+      0.05,
+      0.05,
+      0.05,
+      0.05
+    ],
+    "code": "IRС"
+  },
+  {
+    "name": "Administración",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Agronegocios",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Ciencia de Datos para Negocios ",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Finanzas",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Gerencia del Emprendimiento",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Marketing",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Negocios del Deporte",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Negocios Digitales",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Negocios Internacionales",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Administración y Recursos Humanos",
+    "faculty": "Negocios",
+    "riasec": [
+      0.05,
+      0.05,
+      0.05,
+      0.7,
+      1.0,
+      0.4
+    ],
+    "code": "ESC"
+  },
+  {
+    "name": "Contabilidad y Administración",
+    "faculty": "Negocios",
+    "riasec": [
+      0.7,
+      0.05,
+      0.05,
+      0.4,
+      0.05,
+      1.0
+    ],
+    "code": "CRS"
+  },
+  {
+    "name": "Contabilidad y Finanzas",
+    "faculty": "Negocios",
+    "riasec": [
+      0.7,
+      0.05,
+      0.05,
+      0.4,
+      0.05,
+      1.0
+    ],
+    "code": "CRS"
+  },
+  {
+    "name": "Psicología",
+    "faculty": "Psicología",
+    "riasec": [
+      0.05,
+      0.7,
+      0.05,
+      1.0,
+      0.4,
+      0.05
+    ],
+    "code": "SIE"
+  }
+]

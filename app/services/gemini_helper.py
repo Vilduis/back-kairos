@@ -1,193 +1,167 @@
-# gemini_helper.py (limpio)
+# gemini_helper.py — Migrado a google-genai SDK (reemplaza google-generativeai deprecado)
+import logging
 import os
-import json
 from typing import Dict, Any, List, Optional
 
+logger = logging.getLogger(__name__)
+
+from ..utils.text import normalize_text as _normalize_text
+from ..utils.heuristics import is_greeting as _is_greeting, is_task_request as _is_task_request, is_substantive_signal as _is_signal
+
 try:
-    import google.generativeai as genai
-except Exception:
+    from google import genai
+except ImportError:
+    logger.warning("google-genai SDK no disponible; Gemini desactivado")
     genai = None
 
 # Importar settings para leer GEMINI_API_KEY desde .env
 try:
     from ..config import settings
-except Exception:
+except ImportError:
+    logger.warning("No se pudo importar settings; usando variables de entorno")
     settings = None  # fallback
+
 
 # --- Utilidades internas ---
 
-def _clean_model_name(name: str) -> str:
-    return name.split("/")[-1] if name.startswith("models/") else name
+def _resolve_model_name(preferred: Optional[str] = None) -> str:
+    """Devuelve el nombre del modelo a usar, sin llamadas a la API."""
+    name = preferred or "gemini-1.5-flash"
+    # El sufijo -latest no es válido en google-genai SDK v1+
+    return name.replace("-latest", "")
 
 
-def _resolve_supported_model(preferred: Optional[str] = None) -> str:
-    """Devuelve un modelo que soporte generateContent.
-    Intenta respetar el `preferred` si existe en la lista o en alguna variante.
-    """
-    if not genai:
-        # Valor por defecto estable si la librería no está disponible
-        return preferred or "gemini-1.5-flash"
-    try:
-        available = list(genai.list_models())
-        supported = []
-        for m in available:
-            methods = getattr(m, "supported_generation_methods", []) or getattr(m, "generation_methods", []) or []
-            if "generateContent" in methods:
-                supported.append(_clean_model_name(m.name))
+# --- Singleton del cliente (se inicializa una sola vez) ---
 
-        # Si tenemos preferencia, intentamos encontrar coincidencia exacta o por base
-        if preferred:
-            p = preferred
-            if p in supported:
-                return p
-            base_p = p.replace("-latest", "").replace("-001", "")
-            for s in supported:
-                base_s = s.replace("-latest", "").replace("-001", "")
-                if base_s == base_p:
-                    return s
+_client = None
+_model_name: Optional[str] = None
+_client_initialized = False
 
-        # Heurística de selección por orden de preferencia
-        preference_order = [
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
-            "gemini-pro",
-            "gemini-1.0-pro",
-            "gemini-1.5-flash-001",
-            "gemini-1.5-pro-001",
-        ]
-        for pref in preference_order:
-            for s in supported:
-                if s.startswith(pref):
-                    return s
 
-        # Último recurso: primer modelo soportado o caída al valor estable
-        return supported[0] if supported else (preferred or "gemini-1.5-flash")
-    except Exception as e:
-        print(f"[Gemini] No se pudieron listar modelos, usando preferido: {preferred or 'gemini-1.5-flash'} ({e})")
-        return preferred or "gemini-1.5-flash"
-
-# --- Función de Configuración ---
-
-def _has_api_key() -> bool:
+def _get_api_key() -> Optional[str]:
+    """Obtiene la API key desde settings o variable de entorno."""
     api_key = None
-    # Priorizar settings si está disponible
     try:
         api_key = getattr(settings, "GEMINI_API_KEY", None) if settings else None
     except Exception:
         api_key = None
-    # Fallback a variable de entorno directa
     if not api_key:
         api_key = os.getenv("GEMINI_API_KEY")
-    return bool(api_key) and genai is not None
+    return api_key or None
+
+
+def _has_api_key() -> bool:
+    return bool(_get_api_key()) and genai is not None
 
 
 def setup_client():
+    """Devuelve el cliente singleton de google-genai. Se inicializa solo una vez."""
+    global _client, _model_name, _client_initialized
+    if _client_initialized:
+        return _client, _model_name
+
+    _client_initialized = True
     if not genai:
-        return None
-    # Obtener API key desde settings o entorno
-    api_key = getattr(settings, "GEMINI_API_KEY", None) if settings else None
+        logger.warning("[Gemini] SDK no disponible (google-genai no importado)")
+        return None, None
+    api_key = _get_api_key()
     if not api_key:
-        api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return None
+        logger.warning("[Gemini] GEMINI_API_KEY no configurada")
+        return None, None
     try:
-        genai.configure(api_key=api_key)
-        preferred = (getattr(settings, "GEMINI_MODEL", None) if settings else None) or os.getenv("GEMINI_MODEL")
-        model_name = _resolve_supported_model(preferred)  # seleccionar modelo soportado
-        print(f"[Gemini] Configurado modelo: {model_name}")
-        return genai.GenerativeModel(model_name)
+        preferred = (getattr(settings, "GEMINI_MODEL", None) if settings else None) or os.getenv("GEMINI_MODEL") or "gemini-1.5-flash"
+        _client = genai.Client(api_key=api_key)
+        _model_name = _resolve_model_name(preferred)
+        logger.info("[Gemini] Cliente inicializado con modelo: %s", _model_name)
     except Exception as e:
-        print(f"[Gemini] Error configurando cliente: {e}")
-        return None
+        logger.error("[Gemini] Error inicializando cliente: %s", e)
+        _client = None
+        _model_name = None
+    return _client, _model_name
 
-# --- Función Principal ---
-# Ya no dependemos de un catálogo local de carreras; el modelo las provee.
 
-def generate_model_careers(
-    riasec_profile: Dict[str, float],
-    free_text: str,
-    n: int = 3,
-) -> List[Dict[str, Any]]:
+# --- Cierre personalizado ---
+
+def generate_closing_message(user_texts: List[str], student_name: Optional[str] = None) -> str:
     """
-    Obtiene del modelo n carreras con un puntaje de afinidad.
-    Devuelve List[{career: str, score: float}] en rango [0.0, 1.0].
+    Genera un mensaje de cierre personalizado que menciona temas específicos
+    que el estudiante compartió antes de pedir confirmación de resultados.
     """
-    model = setup_client()
-    riasec_profile_str = ", ".join([f"{k}: {float(v):.2f}" for k, v in riasec_profile.items()])
-    prompt = f"""
-    Eres un orientador vocacional. Con el perfil RIASEC (0-1) y el texto libre
-    del estudiante, recomienda exactamente {n} carreras específicas.
+    non_empty = [t.strip() for t in user_texts if t.strip()]
+    name_part = student_name.strip().split()[0] if student_name and student_name.strip() else ""
 
-    Perfil RIASEC: {riasec_profile_str}
-    Intereses: "{free_text}"
+    if not non_empty:
+        greeting = f"¡{name_part}, ya tengo" if name_part else "¡Ya tengo"
+        return (
+            f"{greeting} suficiente información para estimar tu perfil. "
+            "¿Te muestro los resultados ahora? Responde 'sí' para verlos o 'no' para seguir."
+        )
 
-    Devuelve SOLO JSON con esta forma exacta:
-    {{"items":[{{"career":"...","score":0.95}}]}}
+    client, model_name = setup_client() if _has_api_key() else (None, None)
 
-    Reglas:
-    - "career" debe ser un nombre de carrera concreto (string).
-    - "score" debe ser un número entre 0.0 y 1.0 (float) que refleje afinidad.
-    - No incluyas otros campos como categoría ni explicación.
-    - No agregues texto fuera del JSON.
-    """
-
-    def _empty() -> List[Dict[str, Any]]:
-        # Importante: No devolver carreras inventadas.
-        # Si el modelo no responde o hay error, devolvemos lista vacía.
-        return []
-
-    if not model:
-        return _empty()
-
-    try:
+    if client:
         try:
-            GenerationConfig = getattr(genai, "types", None)
-            generation_config = GenerationConfig.GenerationConfig(
-                response_mime_type="application/json"
-            ) if GenerationConfig else genai.GenerationConfig(
-                response_mime_type="application/json"
+            conversation_summary = "\n".join(f"- {t}" for t in non_empty)
+            name_instruction = f"El nombre del estudiante es {name_part}. Úsalo al inicio del mensaje.\n" if name_part else ""
+            prompt = (
+                "Eres Kairos, orientador vocacional cálido y cercano, en español latinoamericano.\n"
+                f"{name_instruction}"
+                "El estudiante de 5to de secundaria compartió lo siguiente en la conversación:\n"
+                f"{conversation_summary}\n\n"
+                "Escribe UN mensaje de cierre breve (máx. 35 palabras) que:\n"
+                "1. Empiece con el nombre del estudiante si lo tienes.\n"
+                "2. Mencione 2 o 3 temas concretos que compartió (ej: programación, IA, matemáticas).\n"
+                "3. Diga que ya tienes suficiente información para estimar su perfil.\n"
+                "4. Pregunte si quiere ver sus resultados.\n"
+                "4. Use un tono cálido y motivador.\n"
+                f"Ejemplo: '¡{name_part or 'Ana'}, con todo lo que me contaste sobre programación e IA ya tengo tu perfil! "
+                "¿Quieres ver tus carreras recomendadas? Responde sí o no.'\n"
+                "Responde SOLO con el mensaje, sin comillas."
             )
-        except Exception:
-            generation_config = None
-
-        response = model.generate_content(prompt, generation_config=generation_config) if generation_config else model.generate_content(prompt)
-        text = (getattr(response, "text", "") or "").strip()
-        if not text:
-            return _empty()
-        try:
-            data = json.loads(text)
-            raw_items = data.get("items", [])
-            if not isinstance(raw_items, list):
-                return _empty()
-
-            # Normalizar estructura y aplicar fallback de score si falta
-            normalized: List[Dict[str, Any]] = []
-            base_score = 0.95
-            step = 0.02
-            for idx, it in enumerate(raw_items[:n]):
-                name = str(it.get("career", "")).strip()
-                score = it.get("score", None)
-                try:
-                    score = float(score)
-                except Exception:
-                    score = None
-                if score is None:
-                    score = max(0.5, base_score - idx * step)
-                # Clip al rango [0,1]
-                score = 0.0 if score < 0 else (1.0 if score > 1.0 else score)
-                if name:
-                    normalized.append({"career": name, "score": float(score)})
-            return normalized
+            response = client.models.generate_content(model=model_name, contents=prompt)
+            text = (getattr(response, "text", "") or "").strip()
+            if text:
+                return text
         except Exception as e:
-            print(f"[Gemini] Error parseando JSON de carreras: {e}")
-            return _empty()
-    except Exception as e:
-        print(f"[Gemini] Error generando carreras del modelo: {e}")
-        return _empty()
+            logger.error("[Gemini] Error en closing message, usando fallback: %s", e)
+
+    # Fallback: extraer palabras clave de los mensajes del usuario
+    keywords = []
+    kw_map = {
+        "programar": "programación", "programación": "programación", "programacion": "programación",
+        "inteligencia artificial": "IA", "machine learning": "machine learning", "ia ": "IA",
+        "matemáticas": "matemáticas", "matematicas": "matemáticas",
+        "ciencia": "ciencia", "tecnología": "tecnología", "tecnologia": "tecnología",
+        "datos": "ciencia de datos", "diseñar": "diseño", "arte": "arte",
+        "música": "música", "musica": "música", "deporte": "deporte",
+        "investigar": "investigación", "analizar": "análisis",
+    }
+    full_text = " ".join(non_empty).lower()
+    seen = set()
+    for key, label in kw_map.items():
+        if key in full_text and label not in seen:
+            keywords.append(label)
+            seen.add(label)
+        if len(keywords) >= 3:
+            break
+
+    name_str = f"{name_part}, " if name_part else ""
+    if keywords:
+        topics = ", ".join(keywords[:-1]) + (" y " + keywords[-1] if len(keywords) > 1 else keywords[0])
+        return (
+            f"¡{name_str}con lo que me contaste sobre {topics} ya tengo suficiente "
+            "para estimar tu perfil. ¿Te muestro tus carreras recomendadas? Responde 'sí' o 'no'."
+        )
+
+    return (
+        f"¡{name_str}ya tengo suficiente información para estimar tu perfil vocacional. "
+        "¿Te muestro los resultados ahora? Responde 'sí' para verlos o 'no' para seguir conversando."
+    )
+
 
 # --- Helper para modo abierto (3 interacciones) ---
 
-def generate_open_followup(previous_texts: List[str]) -> str:
+def generate_open_followup(previous_texts: List[str], conversation_history: Optional[List[Dict[str, Any]]] = None, student_name: Optional[str] = None) -> str:
     """
     Genera una pregunta breve y amistosa para el modo abierto, orientada a recolectar
     señales útiles (gustos, habilidades, fortalezas, contexto preferido).
@@ -195,102 +169,87 @@ def generate_open_followup(previous_texts: List[str]) -> str:
     """
     last = (previous_texts[-1] if previous_texts else "").strip()
 
-    def _normalize(t: str) -> str:
-        t = (t or "").strip().lower()
-        return t.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
-
-    def _is_greeting(t: str) -> bool:
-        tt = _normalize(t)
-        if not tt:
-            return False
-        greetings = [
-            "hola", "holi", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches",
-            "hey", "que tal", "saludos"
-        ]
-        return any(tt == g or tt.startswith(g) for g in greetings) or len(tt) <= 5
-
-    def _is_task_request(t: str) -> bool:
-        tt = _normalize(t)
-        if not tt:
-            return False
-        cues = [
-            "puedes", "podrias", "ayudame", "ayuda", "analizar", "analizar la situacion",
-            "resolver ejercicio", "responder ejercicio", "explicar", "explicame", "como resolver"
-        ]
-        return any(c in tt for c in cues)
-
-    def _is_signal(t: str) -> bool:
-        tt = _normalize(t)
-        if _is_greeting(tt):
-            return False
-        signal_keywords = [
-            "me gusta", "me encanta", "prefiero", "disfruto", "me interesa", "me atrae", "soy bueno", "se me da",
-            "habilidad", "fortaleza", "fan", "aficion", "pasiones", "crear", "diseñar", "dibujar", "pintar",
-            "programar", "investigar", "analizar", "enseñar", "comunicar", "organizar", "liderar", "colaborar",
-            "arte", "musica", "deporte", "tecnologia", "ciencia", "matematicas", "negocios", "marketing",
-            "cultura", "paisajes", "historias", "escribir"
-        ]
-        long_enough = len(tt) >= 15
-        return any(kw in tt for kw in signal_keywords) or long_enough
-
     signal_count = sum(1 for t in previous_texts if _is_signal(t))
     stage = signal_count  # usamos señales en lugar de simple conteo
 
-    model = setup_client() if _has_api_key() else None
-    if model:
+    if _has_api_key():
+        client, model_name = setup_client()
+    else:
+        client, model_name = None, None
+
+    if client:
         try:
+            name_part = student_name.strip().split()[0] if student_name and student_name.strip() else ""
+            name_instruction = f"El nombre del estudiante es {name_part}. Úsalo naturalmente cuando sea apropiado.\n" if name_part else ""
             persona = (
-                "Actúa como un orientador vocacional cálido y cercano (Kairos), en español latinoamericano,\n"
+                "Actúa como Kairos, orientador vocacional cálido y cercano, en español latinoamericano,\n"
                 "orientado a estudiantes de 17–19 años (5to de secundaria).\n"
-                "Objetivo: recolectar 5–6 señales útiles (gustos concretos, habilidades, fortalezas, contexto preferido).\n"
-                "Reglas:\n"
-                "- Escribe una sola pregunta breve (máx. 18 palabras).\n"
-                "- No repitas textualmente lo dicho; profundiza o abre ángulos nuevos.\n"
-                "- Sé amable, motivador y específico según el último mensaje.\n"
-                "- Evita frases genéricas; propone ejemplos si el estudiante está vago.\n"
-                "- En las primeras 3 interacciones, no uses frases como 'para afinar', 'cuéntame un poquito más';\n"
-                "  usa un tono fluido y cercano con micro-elogios breves.\n"
+                f"{name_instruction}"
+                "Objetivo: recolectar señales útiles (gustos concretos, habilidades, fortalezas, contexto preferido).\n"
+                "Reglas estrictas:\n"
+                "- Escribe UNA sola pregunta breve (máx. 18 palabras).\n"
+                "- NO repitas temas que ya aparecen en la conversación previa.\n"
+                "- Conecta naturalmente con el último mensaje; haz referencia a algo específico que dijo.\n"
+                "- Sé amable y motivador; usa micro-elogios breves cuando sea natural.\n"
+                "- Evita frases genéricas como 'cuéntame más' sin contexto.\n"
+                "- No uses '¿Algo más?' ni preguntas de doble opción largas.\n"
             )
+
+            # Construir historial legible para el prompt
+            if conversation_history:
+                history_lines = []
+                for msg in conversation_history:
+                    role = "Estudiante" if msg.get("role") == "user" else "Kairos"
+                    history_lines.append(f"{role}: {msg.get('content', '').strip()}")
+                history_str = "\n".join(history_lines)
+            else:
+                history_str = "\n".join(f"Estudiante: {t}" for t in previous_texts)
+
             if _is_greeting(last) or stage == 0:
                 intent = (
-                    "Si el último mensaje es un saludo o no da señales, responde con una pregunta amable para iniciar: "
-                    "pide gustos, habilidades o fortalezas con uno o dos ejemplos."
+                    "El último mensaje es un saludo o presentación. Responde con una pregunta amable "
+                    "para iniciar: pide gustos, habilidades o fortalezas con uno o dos ejemplos concretos."
                 )
             elif stage <= 2:
                 if _is_task_request(last):
                     intent = (
-                        "El estudiante pidió analizar/resolver un ejercicio. Responde con una sola pregunta breve, "
-                        "cálida y cercana, pidiendo un ejemplo concreto: 'Claro, cuéntame un ejercicio o reto que te gustó "
-                        "resolver y qué paso fue clave para ti'. Evita repetir preguntas previas y añade un micro-elogio suave."
+                        "El estudiante quiere analizar algo. Pide un ejemplo concreto de un reto o ejercicio "
+                        "que le haya gustado y qué parte fue clave. Añade un micro-elogio suave."
                     )
                 else:
                     intent = (
-                        "El estudiante compartió 1–2 señales. Formula una pregunta fluida y cercana, con un micro-elogio, "
-                        "para entender qué parte disfruta más (resolver problemas, analizar datos, crear cosas) sin sonar rígido."
+                        "El estudiante compartió 1–2 señales. Formula una pregunta que profundice en lo que dijo: "
+                        "qué parte disfruta más, qué lo motiva dentro de ese tema, o un ejemplo concreto."
                     )
             elif stage <= 4:
                 intent = (
-                    "Ya hay 3–4 señales. Explora contexto preferido: trabajo en equipo vs. individual, más creativo vs. "
-                    "analítico, ambientes (educación, empresa, startup, independiente)."
+                    "Ya hay 3–4 señales sobre gustos. Explora el contexto preferido: "
+                    "¿prefiere trabajo solo o en equipo? ¿ambiente académico, empresa o startup? "
+                    "¿algo más creativo o más analítico? Conéctalo con lo que ya dijo."
                 )
             else:
                 intent = (
-                    "Hay 5+ señales. Solicita un matiz final (p. ej., valores importantes o condiciones de trabajo) "
-                    "para cerrar bien el perfil."
+                    "Hay muchas señales. Pide un matiz final relacionado con valores o condiciones de trabajo "
+                    "(impacto social, estabilidad, innovación) basándote en lo que ya compartió."
                 )
+
             prompt = (
                 persona
-                + intent
-                + "\nÚltimo mensaje del estudiante: \"" + last + "\"\n"
-                + "Responde SOLO con la pregunta breve."
+                + f"\nFoco de esta respuesta: {intent}\n"
+                + f"\nConversación hasta ahora:\n{history_str}\n"
+                + f"\nÚltimo mensaje del estudiante: \"{last}\"\n"
+                + "Responde SOLO con la pregunta breve. No expliques ni justifiques."
             )
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
             text = (getattr(response, "text", "") or "").strip()
             if text:
-                print("[Gemini] Pregunta de seguimiento generada por Gemini")
+                logger.debug("[Gemini] Pregunta de seguimiento generada por Gemini")
                 return text
         except Exception as e:
-            print(f"[Gemini] Error en followup, fallback: {e}")
+            logger.error("[Gemini] Error en followup, fallback: %s", e)
 
     # Fallback determinístico por etapas (señales)
     if _is_greeting(last) or stage == 0:
