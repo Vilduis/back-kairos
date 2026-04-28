@@ -240,7 +240,7 @@ def get_open_next(
     # Requiere >= 5 señales Y >= 5 mensajes para evitar cerrar cuando el usuario responde "sí"
     # a una pregunta conversacional de Gemini en interacciones tempranas
     if _is_acceptance(last_user_text) and (session.conversation_stage or "").lower() != "confirm_results":
-        if signal_count >= 5 and user_count >= 5:
+        if signal_count >= 5 and user_count >= 7:
             session.conversation_stage = "results"
             session.last_activity = func.now()
             db.commit()
@@ -292,8 +292,8 @@ def get_open_next(
             db.refresh(bot_msg)
             return {"bot_message": bot_msg}
 
-    # Límite duro de 6 mensajes del usuario: forzar confirmación
-    if user_count >= 6 and (session.conversation_stage or "").lower() != "results":
+    # Límite duro de 8 mensajes del usuario: forzar confirmación
+    if user_count >= 8 and (session.conversation_stage or "").lower() != "results":
         user_texts = [m.content for m in user_msgs]
         confirm_text_limit = generate_closing_message(user_texts, current_student.full_name)
 
@@ -313,8 +313,8 @@ def get_open_next(
         db.refresh(bot_msg)
         return {"bot_message": bot_msg, "awaiting_confirmation": True}
 
-    # Aviso proactivo al 5.º mensaje: pedir última señal antes de mostrar resultados
-    if user_count == 5 and (session.conversation_stage or "").lower() != "confirm_results":
+    # Aviso proactivo al 7.º mensaje: pedir última señal antes de mostrar resultados
+    if user_count == 7 and (session.conversation_stage or "").lower() != "confirm_results":
         user_texts = [m.content for m in user_msgs]
         confirm_text_5 = generate_closing_message(user_texts, current_student.full_name)
 
@@ -335,8 +335,8 @@ def get_open_next(
         return {"bot_message": bot_msg, "awaiting_confirmation": True}
 
     # Si ya hay suficientes señales sustantivas (>=5) -> pedir confirmación para mostrar resultados
-    # También requiere al menos 5 mensajes para no cerrar prematuramente en interacciones tempranas
-    if signal_count >= 5 and user_count >= 5:
+    # También requiere al menos 7 mensajes para no cerrar prematuramente en interacciones tempranas
+    if signal_count >= 5 and user_count >= 7:
         user_texts = [m.content for m in user_msgs]
         confirm_text = generate_closing_message(user_texts, current_student.full_name)
 

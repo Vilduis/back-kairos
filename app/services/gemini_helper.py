@@ -187,12 +187,13 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
                 f"{name_instruction}"
                 "Objetivo: recolectar señales útiles (gustos concretos, habilidades, fortalezas, contexto preferido).\n"
                 "Reglas estrictas:\n"
-                "- Escribe UNA sola pregunta breve (máx. 18 palabras).\n"
+                "- Escribe máx. 2 oraciones: primero un reconocimiento breve (5–8 palabras) de algo específico que dijo, luego UNA pregunta.\n"
+                "- El reconocimiento debe ser concreto, no genérico (no uses 'Qué interesante' solo).\n"
+                "- La pregunta debe ser breve (máx. 15 palabras).\n"
                 "- NO repitas temas que ya aparecen en la conversación previa.\n"
-                "- Conecta naturalmente con el último mensaje; haz referencia a algo específico que dijo.\n"
-                "- Sé amable y motivador; usa micro-elogios breves cuando sea natural.\n"
-                "- Evita frases genéricas como 'cuéntame más' sin contexto.\n"
-                "- No uses '¿Algo más?' ni preguntas de doble opción largas.\n"
+                "- NO empieces con 'Y con lo que comentaste' ni 'Teniendo en cuenta que comentaste'.\n"
+                "- Varía el inicio de cada respuesta; no empieces siempre igual.\n"
+                "- Evita preguntas de doble opción largas.\n"
             )
 
             # Construir historial legible para el prompt
@@ -251,26 +252,43 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
         except Exception as e:
             logger.error("[Gemini] Error en followup, fallback: %s", e)
 
-    # Fallback determinístico por etapas (señales)
+    # Fallback determinístico por etapas — rotación para evitar repetición
     if _is_greeting(last) or stage == 0:
-        base = "¡Qué gusto saludarte! ¿Qué actividades disfrutas y en qué te sientes fuerte?"
+        options = [
+            "¿Qué actividades disfrutas y en qué te sientes fuerte?",
+            "¿Qué materias o temas te llaman más la atención?",
+            "¿Qué haces en tu tiempo libre que te salga de forma natural?",
+        ]
     elif stage <= 2:
-        base = (
-            "Cuéntame un ejemplo concreto: ¿qué ejercicio o problema te gustó resolver y qué paso fue clave?"
-            if _is_task_request(last)
-            else "¿Qué parte disfrutas más: resolver problemas, analizar datos o crear cosas?"
-        )
+        if _is_task_request(last):
+            options = [
+                "¿Qué ejercicio o reto recuerdas que te gustó resolver?",
+                "¿Qué tipo de problema te resulta más interesante atacar?",
+            ]
+        else:
+            options = [
+                "¿Qué parte disfrutas más: resolver problemas, analizar datos o crear cosas?",
+                "¿Hay algún proyecto donde hayas dado lo mejor de ti?",
+                "¿Qué se te da mejor: diseñar ideas, calcular o comunicarlas?",
+                "¿Cuándo dices 'esto sí me gusta'? ¿Qué sueles estar haciendo?",
+            ]
     elif stage <= 4:
-        base = (
-            "¿Qué tipo de problema disfrutas resolver (lógica, datos, diseño)? Cuéntame uno breve."
-            if _is_task_request(last)
-            else "¿Prefieres crear y explorar ideas o analizar y resolver problemas? ¿Solo o en equipo?"
-        )
+        if _is_task_request(last):
+            options = [
+                "¿Qué tipo de problema disfrutas resolver: lógica, datos o diseño?",
+                "¿Prefieres trabajar con números, personas o ideas?",
+            ]
+        else:
+            options = [
+                "¿Prefieres trabajar solo o en equipo?",
+                "¿Te imaginas en una empresa grande, startup o investigando?",
+                "¿Buscas algo más creativo o más analítico en tu trabajo ideal?",
+            ]
     else:
-        base = "¿Qué valores o condiciones de trabajo son importantes para ti (p. ej., impacto, estabilidad, creatividad)?"
+        options = [
+            "¿Qué te importa más: impacto social, estabilidad o innovar?",
+            "¿Hay algo que no harías aunque pagara bien?",
+            "¿Qué condición de trabajo sería innegociable para ti?",
+        ]
 
-    if last:
-        if stage <= 2:
-            return f"Y con lo que comentaste, {base}"
-        return f"Teniendo en cuenta que comentaste: \"{last}\", {base}"
-    return base
+    return options[abs(hash(last)) % len(options)]
