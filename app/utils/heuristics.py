@@ -9,7 +9,7 @@ def is_greeting(text: str) -> bool:
         "hola", "holi", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches",
         "hey", "que tal", "saludos",
     ]
-    return any(t == g or t.startswith(g) for g in greetings) or len(t) <= 5
+    return any(t == g or (t.startswith(g) and len(t) <= 40) for g in greetings) or len(t) <= 5
 
 
 def is_acceptance(text: str) -> bool:
