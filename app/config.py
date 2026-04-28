@@ -26,9 +26,11 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: Optional[str] = None
 
-    # Resend
-    RESEND_API_KEY: Optional[str] = None
-    RESEND_FROM: Optional[str] = "onboarding@resend.dev"
+    # SMTP (Gmail)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
 
     # Frontend
     FRONTEND_URL: str
