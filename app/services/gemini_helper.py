@@ -252,35 +252,6 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
         except Exception as e:
             logger.error("[Gemini] Error en followup, fallback: %s", e)
 
-    # Reconocimiento basado en keywords del último mensaje (para el fallback)
-    def _extract_ack(msg: str) -> str:
-        t = _normalize_text(msg)
-        ack_map = [
-            ("matematicas", "Las matemáticas son una base muy sólida."),
-            ("calcular",    "Calcular con seguridad es una habilidad real."),
-            ("numeros",     "Trabajar con números te sale natural."),
-            ("programar",   "La programación abre muchos caminos."),
-            ("programacion","La programación abre muchos caminos."),
-            ("disenar",     "El diseño combina creatividad y precisión."),
-            ("arte",        "El arte refleja una forma de ver el mundo única."),
-            ("musica",      "La música une creatividad y disciplina."),
-            ("deporte",     "El deporte desarrolla mucho más que resistencia física."),
-            ("ciencia",     "La ciencia es el motor de muchos campos."),
-            ("tecnologia",  "La tecnología está en el centro de casi todo hoy."),
-            ("investigar",  "Investigar es clave en muchas carreras."),
-            ("analizar",    "Analizar situaciones es una fortaleza valiosa."),
-            ("comunicar",   "Comunicar bien es una habilidad enorme."),
-            ("ensenar",     "Enseñar requiere dominio y paciencia."),
-            ("ayudar",      "El deseo de ayudar es un gran motor vocacional."),
-            ("negocios",    "Los negocios combinan estrategia y personas."),
-            ("resolver",    "Resolver problemas es una fortaleza muy aplicable."),
-            ("crear",       "La capacidad de crear es muy valorada hoy."),
-        ]
-        for kw, ack in ack_map:
-            if kw in t:
-                return ack
-        return ""
-
     # Fallback determinístico por etapas — rotación para evitar repetición
     if _is_greeting(last) or stage == 0:
         options = [
@@ -327,6 +298,4 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
         if msg.get("role") == "bot"
     }
     available = [o for o in options if o not in asked] or options
-    question = available[abs(hash(last)) % len(available)]
-    ack = _extract_ack(last)
-    return f"{ack} {question}".strip() if ack else question
+    return available[abs(hash(last)) % len(available)]
