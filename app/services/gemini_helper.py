@@ -181,22 +181,23 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
         try:
             name_part = student_name.strip().split()[0] if student_name and student_name.strip() else ""
             name_instruction = f"El nombre del estudiante es {name_part}. Úsalo naturalmente cuando sea apropiado.\n" if name_part else ""
-            persona = (
-                "Actúa como Kairos, orientador vocacional cálido y cercano, en español latinoamericano,\n"
-                "orientado a estudiantes de 17–19 años (5to de secundaria).\n"
+            system_instruction = (
+                "Eres Kairos, orientador vocacional cálido y cercano, en español latinoamericano, "
+                "especializado en estudiantes de 17–19 años (5to de secundaria).\n"
                 f"{name_instruction}"
-                "Objetivo: recolectar señales útiles (gustos concretos, habilidades, fortalezas, contexto preferido).\n"
-                "Reglas estrictas:\n"
-                "- Escribe máx. 2 oraciones: primero un reconocimiento breve (5–8 palabras) de algo específico que dijo, luego UNA pregunta.\n"
-                "- El reconocimiento debe ser concreto, no genérico (no uses 'Qué interesante' solo).\n"
-                "- La pregunta debe ser breve (máx. 15 palabras).\n"
-                "- NO repitas temas que ya aparecen en la conversación previa.\n"
-                "- NO empieces con 'Y con lo que comentaste' ni 'Teniendo en cuenta que comentaste'.\n"
-                "- Varía el inicio de cada respuesta; no empieces siempre igual.\n"
+                "Tu único objetivo es recolectar señales vocacionales útiles: gustos concretos, habilidades, fortalezas y contexto preferido de trabajo.\n\n"
+                "REGLAS ESTRICTAS (siempre):\n"
+                "- Responde con máximo 2 oraciones: primero un reconocimiento breve y concreto (5–8 palabras) de algo específico que dijo el estudiante, luego UNA sola pregunta.\n"
+                "- El reconocimiento debe ser específico, NO genérico (prohibido: 'Qué interesante', 'Genial', 'Muy bien').\n"
+                "- La pregunta debe tener máximo 15 palabras.\n"
+                "- NUNCA repitas un tema que ya apareció en el historial.\n"
+                "- NUNCA empieces con 'Y con lo que comentaste' ni 'Teniendo en cuenta que comentaste'.\n"
+                "- Varía el inicio de cada respuesta; no empieces siempre de la misma forma.\n"
                 "- Evita preguntas de doble opción largas.\n"
+                "- Responde SOLO con el mensaje final. Sin comillas, sin explicaciones, sin meta-comentarios."
             )
 
-            # Construir historial legible para el prompt
+            # Construir historial legible con delimitadores claros
             if conversation_history:
                 history_lines = []
                 for msg in conversation_history:
@@ -208,8 +209,8 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
 
             if _is_greeting(last) or stage == 0:
                 intent = (
-                    "El último mensaje es un saludo o presentación. Responde con una pregunta amable "
-                    "para iniciar: pide gustos, habilidades o fortalezas con uno o dos ejemplos concretos."
+                    "El último mensaje es un saludo o presentación inicial. "
+                    "Responde con una pregunta amable para arrancar: pide gustos, habilidades o fortalezas con uno o dos ejemplos concretos."
                 )
             elif stage <= 2:
                 if _is_task_request(last):
@@ -219,31 +220,30 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
                     )
                 else:
                     intent = (
-                        "El estudiante compartió 1–2 señales. Formula una pregunta que profundice en lo que dijo: "
-                        "qué parte disfruta más, qué lo motiva dentro de ese tema, o un ejemplo concreto."
+                        "El estudiante compartió 1–2 señales vocacionales. Formula una pregunta que profundice en lo que dijo: "
+                        "qué parte disfruta más, qué lo motiva dentro de ese tema, o pide un ejemplo concreto."
                     )
             elif stage <= 4:
                 intent = (
-                    "Ya hay 3–4 señales sobre gustos. Explora el contexto preferido: "
-                    "¿prefiere trabajo solo o en equipo? ¿ambiente académico, empresa o startup? "
-                    "¿algo más creativo o más analítico? Conéctalo con lo que ya dijo."
+                    "Ya hay 3–4 señales sobre gustos y habilidades. Explora el contexto de trabajo preferido: "
+                    "¿solo o en equipo?, ¿ambiente académico, empresa o startup?, ¿más creativo o más analítico? "
+                    "Conéctalo con algo que el estudiante ya mencionó."
                 )
             else:
                 intent = (
-                    "Hay muchas señales. Pide un matiz final relacionado con valores o condiciones de trabajo "
+                    "Hay muchas señales. Pide un matiz final sobre valores o condiciones de trabajo "
                     "(impacto social, estabilidad, innovación) basándote en lo que ya compartió."
                 )
 
-            prompt = (
-                persona
-                + f"\nFoco de esta respuesta: {intent}\n"
-                + f"\nConversación hasta ahora:\n{history_str}\n"
-                + f"\nÚltimo mensaje del estudiante: \"{last}\"\n"
-                + "Responde SOLO con la pregunta breve. No expliques ni justifiques."
+            contents = (
+                f"### Historial de conversación:\n{history_str}\n\n"
+                f"### Último mensaje del estudiante:\n\"{last}\"\n\n"
+                f"### Tu tarea para este turno:\n{intent}"
             )
             response = client.models.generate_content(
                 model=model_name,
-                contents=prompt,
+                contents=contents,
+                config={"system_instruction": system_instruction},
             )
             text = (getattr(response, "text", "") or "").strip()
             if text:
