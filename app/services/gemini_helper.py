@@ -291,4 +291,11 @@ def generate_open_followup(previous_texts: List[str], conversation_history: Opti
             "¿Qué condición de trabajo sería innegociable para ti?",
         ]
 
-    return options[abs(hash(last)) % len(options)]
+    # Excluir preguntas que el bot ya hizo en esta conversación
+    asked = {
+        msg.get("content", "").strip()
+        for msg in (conversation_history or [])
+        if msg.get("role") == "bot"
+    }
+    available = [o for o in options if o not in asked] or options
+    return available[abs(hash(last)) % len(available)]
