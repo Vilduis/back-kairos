@@ -11,7 +11,7 @@ API REST para la plataforma de orientación vocacional Kairos. Evalúa los inter
 - Analiza las respuestas con un modelo ML (TF-IDF + RIASEC) y genera scores para los seis perfiles Holland (R, I, A, S, E, C).
 - Recomienda las tres carreras más afines usando similitud de coseno contra una base de datos de carreras.
 - Provee paneles diferenciados para **estudiantes**, **evaluadores** y **administradores**.
-- Envía correos transaccionales para recuperación de contraseña.
+- Envía correos para recuperación de contraseña vía SMTP.
 
 ---
 
@@ -26,7 +26,7 @@ API REST para la plataforma de orientación vocacional Kairos. Evalúa los inter
 | Machine Learning | scikit-learn, TF-IDF, cosine similarity |
 | IA Generativa | Google Gemini (google-genai SDK) |
 | Validación | Pydantic v2 |
-| Email | Resend / SMTP |
+| Email | SMTP |
 
 ---
 
