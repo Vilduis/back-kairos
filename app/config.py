@@ -26,11 +26,9 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: Optional[str] = None
 
-    # SMTP (Gmail)
-    SMTP_HOST: str = "smtp.gmail.com"
-    SMTP_PORT: int = 587
-    SMTP_USER: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
+    # Resend (email transaccional)
+    API_RESEND: Optional[str] = None
+    RESEND_FROM: str = "Kairos <noreply@vilduis.com>"
 
     # Frontend
     FRONTEND_URL: str

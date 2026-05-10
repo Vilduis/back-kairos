@@ -26,4 +26,4 @@ joblib==1.4.2
 google-genai==1.39.1
 
 # Correos
-# resend==2.27.0  # instalado pero no usado; se usa smtplib stdlib
+resend==2.27.0
