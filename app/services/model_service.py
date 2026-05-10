@@ -1,4 +1,3 @@
-# model_service.py (limpio)
 import logging
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
@@ -29,6 +28,16 @@ V8_PIPELINE_FILE = 'pipeline_riasec_v8_20260427.pkl'
 CAREERS_JSON_FILE = 'careers_db_v8_20260427.json'
 
 riasec_types = ['R', 'I', 'A', 'S', 'E', 'C']  # Importante mantener el orden
+
+# Mapeo canónico de variantes de categoría RIASEC → letra única
+_RIASEC_SYNONYMS: dict[str, str] = {
+    "R": "R", "REALISTA": "R", "REALISTIC": "R",
+    "I": "I", "INVESTIGATIVO": "I", "INVESTIGATIVE": "I", "INVESTIGADOR": "I",
+    "A": "A", "ARTISTICO": "A", "ARTÍSTICO": "A", "ARTISTIC": "A",
+    "S": "S", "SOCIAL": "S",
+    "E": "E", "EMPRENDEDOR": "E", "ENTERPRISING": "E",
+    "C": "C", "CONVENCIONAL": "C", "CONVENTIONAL": "C",
+}
 
 # Pipeline V8 (cargado bajo demanda)
 v8_pipeline = None
@@ -109,15 +118,7 @@ def aggregate_answers_for_evaluation(db: Session, evaluation_id: int) -> Dict[st
             try:
                 last = q.category.split("_")[-1]
                 key_raw = (last or "").upper()
-                synonyms = {
-                    "R": "R", "REALISTA": "R", "REALISTIC": "R",
-                    "I": "I", "INVESTIGATIVO": "I", "INVESTIGATIVE": "I", "INVESTIGADOR": "I",
-                    "A": "A", "ARTISTICO": "A", "ARTÍSTICO": "A", "ARTISTIC": "A",
-                    "S": "S", "SOCIAL": "S",
-                    "E": "E", "EMPRENDEDOR": "E", "ENTERPRISING": "E",
-                    "C": "C", "CONVENCIONAL": "C", "CONVENTIONAL": "C",
-                }
-                cat_key = synonyms.get(key_raw, key_raw if key_raw in riasec_types else None)
+                cat_key = _RIASEC_SYNONYMS.get(key_raw, key_raw if key_raw in riasec_types else None)
             except Exception as e:
                 logger.warning("Error resolviendo categoría RIASEC para pregunta %s: %s", q.question_id, e)
                 cat_key = None
@@ -245,13 +246,20 @@ def generate_and_save_results(db: Session, evaluation_id: int) -> EvaluationResu
         load_v8_pipeline_if_needed()
         profile_0_to_1 = predict_profile_from_text_v8(answers_text)
     else:
-        max_mcq_per_dim = 6 * 5
+        # 6 preguntas por dimensión, escala Likert 1–5
+        # min posible = 6*1 = 6, max posible = 6*5 = 30
+        # Fórmula: (suma - min) / (max - min) * 4 + 1  →  rango exacto [1.0, 5.0]
+        min_mcq_per_dim = 6 * 1   # 6
+        max_mcq_per_dim = 6 * 5   # 30
         profile_1_to_5 = {}
         for r_type in riasec_types:
-            profile_1_to_5[r_type] = round(float(np.clip(mcq_scores.get(r_type, 0.0) / max_mcq_per_dim * 4.0 + 1.0, 1.0, 5.0)), 1)
+            score = mcq_scores.get(r_type, 0.0)
+            profile_1_to_5[r_type] = round(float(np.clip(
+                (score - min_mcq_per_dim) / (max_mcq_per_dim - min_mcq_per_dim) * 4.0 + 1.0,
+                1.0, 5.0
+            )), 1)
         profile_0_to_1 = normalize_1_to_5_to_0_to_1(profile_1_to_5)
 
-    free_text = (answers_text or "").strip()
     # Recomendaciones basadas en similitud (si la base está cargada); fallback: vacío
     top3: List[Dict[str, Any]] = _get_recommendations(profile_0_to_1, top_n=3)
 
@@ -319,6 +327,33 @@ def get_artifact_path(filename: str) -> str:
     return candidates[-1]
 
 
+def _describe_career(name: str, c_vec: np.ndarray, user_top: list) -> str:
+    """Genera una descripción personalizada de una carrera basada en el perfil RIASEC del usuario."""
+    labels = {
+        "R": "Realista",
+        "I": "Investigador",
+        "A": "Artístico",
+        "S": "Social",
+        "E": "Emprendedor",
+        "C": "Convencional",
+    }
+    traits = {
+        "R": "proyectos prácticos y resultados tangibles",
+        "I": "análisis y resolución de problemas complejos",
+        "A": "creación y diseño de soluciones creativas",
+        "S": "comunicación y trabajo colaborativo",
+        "E": "liderazgo, negociación y dirección de iniciativas",
+        "C": "organización, planificación y seguimiento de procesos",
+    }
+    order = np.argsort(c_vec)[::-1]
+    ct = [riasec_types[int(i)] for i in order[:2]]
+    p1 = f"Se alinea con tus intereses {labels[user_top[0]]} ({user_top[0]})"
+    p1 += f" y {labels[user_top[1]]} ({user_top[1]})."
+    p2 = f" En {name}, el enfoque {labels[ct[0]]} ({ct[0]}) favorece {traits[ct[0]]}."
+    p3 = f" También aporta {traits[ct[1]]} desde {labels[ct[1]]} ({ct[1]})."
+    return (p1 + p2 + p3).strip()
+
+
 def _get_recommendations(profile_0_to_1: Dict[str, float], top_n: int = 3) -> List[Dict[str, Any]]:
     """Compara el perfil del usuario (0-1) contra CAREERS_VECTORS y devuelve top N.
     Salida: [{"career": name, "score": float, "description": str}]
@@ -333,31 +368,6 @@ def _get_recommendations(profile_0_to_1: Dict[str, float], top_n: int = 3) -> Li
         user_order = np.argsort(user_vec.flatten())[::-1]
         user_top = [riasec_types[int(i)] for i in user_order[:2]]
 
-        def _describe(name: str, c_vec: np.ndarray) -> str:
-            labels = {
-                "R": "Realista",
-                "I": "Investigador",
-                "A": "Artístico",
-                "S": "Social",
-                "E": "Emprendedor",
-                "C": "Convencional",
-            }
-            traits = {
-                "R": "proyectos prácticos y resultados tangibles",
-                "I": "análisis y resolución de problemas complejos",
-                "A": "creación y diseño de soluciones creativas",
-                "S": "comunicación y trabajo colaborativo",
-                "E": "liderazgo, negociación y dirección de iniciativas",
-                "C": "organización, planificación y seguimiento de procesos",
-            }
-            order = np.argsort(c_vec)[::-1]
-            ct = [riasec_types[int(i)] for i in order[:2]]
-            p1 = f"Se alinea con tus intereses {labels[user_top[0]]} ({user_top[0]})"
-            p1 += f" y {labels[user_top[1]]} ({user_top[1]})."
-            p2 = f" En {name}, el enfoque {labels[ct[0]]} ({ct[0]}) favorece {traits[ct[0]]}."
-            p3 = f" También aporta {traits[ct[1]]} desde {labels[ct[1]]} ({ct[1]})."
-            return (p1 + p2 + p3).strip()
-
         output: List[Dict[str, Any]] = []
         for i in idxs:
             item = CAREERS_DB[i]
@@ -366,7 +376,7 @@ def _get_recommendations(profile_0_to_1: Dict[str, float], top_n: int = 3) -> Li
             output.append({
                 "career": name,
                 "score": round(float(sims[i]), 2),
-                "description": _describe(name, c_vec),
+                "description": _describe_career(name, c_vec, user_top),
                 "faculty": str(item.get("faculty", "")),
             })
         return output

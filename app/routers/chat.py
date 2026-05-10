@@ -1,23 +1,41 @@
 import logging
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 
 logger = logging.getLogger(__name__)
 
 from ..db import get_db
-from ..models import User as UserModel, ChatSession as ChatSessionModel, ChatMessage as ChatMessageModel, Question as QuestionModel, Evaluation as EvaluationModel, UserAnswer as UserAnswerModel, EvaluationResult as EvaluationResultModel, StudentFeedback as StudentFeedbackModel, EvaluatorComment as EvaluatorCommentModel
-from ..schemas import ChatSession as ChatSessionSchema, ChatSessionCreate, ChatMessage as ChatMessageSchema, ChatMessageCreate, UserAnswer as UserAnswerSchema, UserSessionAnswerCreate, EvaluationResult as EvaluationResultSchema, Question as QuestionSchema
+from ..models import (
+    User as UserModel,
+    ChatSession as ChatSessionModel,
+    ChatMessage as ChatMessageModel,
+    Question as QuestionModel,
+    Evaluation as EvaluationModel,
+    UserAnswer as UserAnswerModel,
+    EvaluationResult as EvaluationResultModel,
+    StudentFeedback as StudentFeedbackModel,
+    EvaluatorComment as EvaluatorCommentModel,
+)
+from ..schemas import (
+    ChatSession as ChatSessionSchema,
+    ChatSessionCreate,
+    ChatMessage as ChatMessageSchema,
+    ChatMessageCreate,
+    UserAnswer as UserAnswerSchema,
+    UserSessionAnswerCreate,
+    EvaluationResult as EvaluationResultSchema,
+    Question as QuestionSchema,
+)
 from ..deps import get_current_user, get_current_student
 from sqlalchemy.sql import func
+from ..enums import ChatMode, ConversationStage
 from ..services.model_service import ensure_evaluation_for_session, generate_and_save_results
 from ..services.gemini_helper import generate_open_followup, generate_closing_message
-from ..utils.text import normalize_text as _normalize
 from ..utils.heuristics import (
-    is_greeting as _is_greeting,
     is_acceptance as _is_acceptance,
     is_negative as _is_negative,
-    is_substantive_signal as _is_substantive_signal,
     count_signals as _count_signals,
 )
 
@@ -27,432 +45,364 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# Crear una nueva sesión de chat
+
+# ---------------------------------------------------------------------------
+# Helpers privados
+# ---------------------------------------------------------------------------
+
+def _get_session_or_404(
+    session_id: int,
+    user_id: int,
+    db: Session,
+    chat_mode: str = None,
+    detail: str = "Sesión de chat no encontrada",
+) -> ChatSessionModel:
+    """Obtiene una sesión validando pertenencia al usuario. Lanza 404 si no existe."""
+    filters = [
+        ChatSessionModel.session_id == session_id,
+        ChatSessionModel.user_id == user_id,
+    ]
+    if chat_mode is not None:
+        filters.append(ChatSessionModel.chat_mode == chat_mode)
+    session = db.query(ChatSessionModel).filter(*filters).first()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+    return session
+
+
+def _next_message_order(session_id: int, db: Session) -> int:
+    """Devuelve el siguiente número de orden de mensaje para la sesión."""
+    max_order = db.query(func.max(ChatMessageModel.message_order)).filter(
+        ChatMessageModel.session_id == session_id
+    ).scalar()
+    return (max_order or 0) + 1
+
+
+def _save_bot_message(session_id: int, content: str, db: Session) -> ChatMessageModel:
+    """Crea y persiste un mensaje de bot en la sesión."""
+    msg = ChatMessageModel(
+        session_id=session_id,
+        message_type="bot",
+        content=content,
+        message_order=_next_message_order(session_id, db),
+    )
+    db.add(msg)
+    return msg
+
+
+def _normalize_question_anchors(question: QuestionModel) -> None:
+    """Normaliza los anchors de escala Likert en la pregunta si están incompletos.
+
+    Modifica el objeto ORM directamente para que los cambios sean persistidos
+    junto con el commit de `current_question_id` en el mismo request.
+    """
+    if (getattr(question, "question_type", None) or "").lower() != "scale":
+        return
+    try:
+        opts = dict(getattr(question, "options", {}) or {})
+        anchors = dict((opts.get("anchors") or {}))
+        default_anchors = {
+            "1": "Totalmente en desacuerdo",
+            "2": "En desacuerdo",
+            "3": "Neutral",
+            "4": "De acuerdo",
+            "5": "Totalmente de acuerdo",
+        }
+        changed = False
+        for k, v in default_anchors.items():
+            cur = str(anchors.get(str(k), "")).strip()
+            if not cur or cur == str(k):
+                anchors[str(k)] = v
+                changed = True
+        if opts.get("scale_min") is None:
+            opts["scale_min"] = 1
+            changed = True
+        if opts.get("scale_max") is None:
+            opts["scale_max"] = 5
+            changed = True
+        if changed:
+            opts["anchors"] = anchors
+            question.options = opts
+    except Exception as e:
+        logger.warning("Error normalizando anchors de pregunta %s: %s", question.question_id, e)
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
 @router.post("/sessions", response_model=ChatSessionSchema)
 def create_chat_session(
     chat_session: ChatSessionCreate,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     db_chat_session = ChatSessionModel(
         user_id=current_student.user_id,
         chat_mode=chat_session.chat_mode,
-        conversation_stage=chat_session.conversation_stage or "welcome"
+        conversation_stage=chat_session.conversation_stage or ConversationStage.WELCOME,
     )
     db.add(db_chat_session)
     db.commit()
     db.refresh(db_chat_session)
     return db_chat_session
 
-# Obtener sesiones de chat del estudiante
+
 @router.get("/sessions", response_model=List[ChatSessionSchema])
 def get_chat_sessions(
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    sessions = db.query(ChatSessionModel).filter(
+    return db.query(ChatSessionModel).filter(
         ChatSessionModel.user_id == current_student.user_id
     ).all()
-    return sessions
 
-# Obtener una sesión de chat específica
+
 @router.get("/sessions/{session_id}", response_model=ChatSessionSchema)
 def get_chat_session(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == session_id,
-        ChatSessionModel.user_id == current_student.user_id
-    ).first()
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat no encontrada")
-    
-    return session
+    return _get_session_or_404(session_id, current_student.user_id, db)
 
-# Enviar un mensaje en una sesión de chat
+
 @router.post("/messages", response_model=ChatMessageSchema)
 def create_chat_message(
     chat_message: ChatMessageCreate,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Verificar que la sesión existe y pertenece al estudiante
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == chat_message.session_id,
-        ChatSessionModel.user_id == current_student.user_id
-    ).first()
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat no encontrada")
-    
-    # Crear el mensaje
+    session = _get_session_or_404(chat_message.session_id, current_student.user_id, db)
+
     db_chat_message = ChatMessageModel(
         session_id=chat_message.session_id,
         message_type=chat_message.message_type,
         content=chat_message.content,
-        message_order=chat_message.message_order
+        message_order=chat_message.message_order,
     )
     db.add(db_chat_message)
-    
-    # Actualizar la última actividad de la sesión
-    session.last_activity = func.now()
-    
+    session.last_activity = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_chat_message)
     return db_chat_message
 
-# Obtener mensajes de una sesión de chat
+
 @router.get("/sessions/{session_id}/messages", response_model=List[ChatMessageSchema])
 def get_chat_messages(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Verificar que la sesión existe y pertenece al estudiante
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == session_id,
-        ChatSessionModel.user_id == current_student.user_id
-    ).first()
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat no encontrada")
-    
-    # Obtener mensajes ordenados por orden de mensaje
-    messages = db.query(ChatMessageModel).filter(
+    _get_session_or_404(session_id, current_student.user_id, db)
+    return db.query(ChatMessageModel).filter(
         ChatMessageModel.session_id == session_id
     ).order_by(ChatMessageModel.message_order).all()
-    
-    return messages
 
-# Obtener la siguiente pregunta en modo guiado
+
 @router.get("/sessions/{session_id}/next-question", response_model=QuestionSchema)
 def get_next_question(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Verificar que la sesión existe y pertenece al estudiante
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == session_id,
-        ChatSessionModel.user_id == current_student.user_id,
-        ChatSessionModel.chat_mode == "guided"
-    ).first()
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat guiado no encontrada")
-    
-    # Obtener la siguiente pregunta por display_order y modo compatible
+    session = _get_session_or_404(
+        session_id,
+        current_student.user_id,
+        db,
+        chat_mode=ChatMode.GUIDED,
+        detail="Sesión de chat guiado no encontrada",
+    )
+
     if session.current_question_id:
-        current_q = db.query(QuestionModel).filter(QuestionModel.question_id == session.current_question_id).first()
+        current_q = db.query(QuestionModel).filter(
+            QuestionModel.question_id == session.current_question_id
+        ).first()
         next_question = db.query(QuestionModel).filter(
             QuestionModel.display_order > (current_q.display_order or 0),
-            QuestionModel.compatible_modes.in_(["guided", "both"])
+            QuestionModel.compatible_modes.in_([ChatMode.GUIDED, "both"]),
         ).order_by(QuestionModel.display_order.asc()).first()
     else:
         next_question = db.query(QuestionModel).filter(
-            QuestionModel.compatible_modes.in_(["guided", "both"])
+            QuestionModel.compatible_modes.in_([ChatMode.GUIDED, "both"]),
         ).order_by(QuestionModel.display_order.asc()).first()
-    
-    if not next_question:
-        raise HTTPException(status_code=404, detail="No hay preguntas disponibles")
-    # Normalizar anchors para preguntas de escala (fallback seguro)
-    try:
-        if (getattr(next_question, "question_type", None) or "").lower() == "scale":
-            opts = dict(getattr(next_question, "options", {}) or {})
-            anchors = dict((opts.get("anchors") or {}) or {})
-            default_anchors = {
-                "1": "Totalmente en desacuerdo",
-                "2": "En desacuerdo",
-                "3": "Neutral",
-                "4": "De acuerdo",
-                "5": "Totalmente de acuerdo",
-            }
-            changed = False
-            for k, v in default_anchors.items():
-                cur = str(anchors.get(str(k), "")).strip()
-                if not cur or cur == str(k):
-                    anchors[str(k)] = v
-                    changed = True
-            if opts.get("scale_min") is None:
-                opts["scale_min"] = 1
-                changed = True
-            if opts.get("scale_max") is None:
-                opts["scale_max"] = 5
-                changed = True
-            if changed:
-                opts["anchors"] = anchors
-                next_question.options = opts
-    except Exception as e:
-        logger.warning("Error normalizando anchors de pregunta %s: %s", next_question.question_id, e)
 
-    # Actualizar la pregunta actual en la sesión
+    if not next_question:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No hay preguntas disponibles")
+
+    # Normaliza anchors Likert si es necesario (cambios persistidos con el siguiente commit)
+    _normalize_question_anchors(next_question)
+
     session.current_question_id = next_question.question_id
     db.commit()
-    
     return next_question
 
-# NUEVO: Siguiente mensaje en modo abierto con confirmación basada en señales (gustos/habilidades/fortalezas)
+
 @router.post("/sessions/{session_id}/open/next")
 def get_open_next(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Validar la sesión y modo
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == session_id,
-        ChatSessionModel.user_id == current_student.user_id,
-        ChatSessionModel.chat_mode == "open"
-    ).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat abierto no encontrada")
+    session = _get_session_or_404(
+        session_id,
+        current_student.user_id,
+        db,
+        chat_mode=ChatMode.OPEN,
+        detail="Sesión de chat abierto no encontrada",
+    )
 
-    # Todos los mensajes (para historial de conversación)
     all_msgs = db.query(ChatMessageModel).filter(
         ChatMessageModel.session_id == session_id
     ).order_by(ChatMessageModel.message_order.asc()).all()
 
-    # Solo mensajes del usuario
     user_msgs = [m for m in all_msgs if m.message_type == "user"]
     last_user_text = (user_msgs[-1].content if user_msgs else "").strip()
+    conversation_history = [{"role": m.message_type, "content": m.content} for m in all_msgs]
 
-    # Historial completo para Gemini (role + content)
-    conversation_history = [
-        {"role": m.message_type, "content": m.content}
-        for m in all_msgs
-    ]
-
-    # Los mensajes de insistencia se delegan al generador de follow-up
-
-    # Calcular número de señales sustantivas únicas por mensaje
-    # Contabilizar 5–6 señales en general (no por tipo) y permitir múltiples por mensaje
     signal_count = sum(_count_signals(m.content) for m in user_msgs)
     user_count = len(user_msgs)
-
-    # Nombre solo en el primer turno; el cierre siempre lo usa (2 menciones totales)
     name_for_followup = current_student.full_name if user_count == 0 else None
 
-    # Si el último mensaje es una aceptación explícita y ya hay señales mínimas, permitir cerrar
-    # Evitar interceptar cuando estamos en etapa de confirmación explícita (se maneja más abajo)
-    # Requiere >= 5 señales Y >= 5 mensajes para evitar cerrar cuando el usuario responde "sí"
-    # a una pregunta conversacional de Gemini en interacciones tempranas
-    if _is_acceptance(last_user_text) and (session.conversation_stage or "").lower() != "confirm_results":
+    current_stage = (session.conversation_stage or "").lower()
+
+    # --- Rama: aceptación explícita del usuario (fuera de etapa confirm_results) ---
+    if _is_acceptance(last_user_text) and current_stage != ConversationStage.CONFIRM_RESULTS:
         if signal_count >= 5 and user_count >= 7:
-            session.conversation_stage = "results"
-            session.last_activity = func.now()
+            session.conversation_stage = ConversationStage.RESULTS
+            session.last_activity = datetime.now(timezone.utc)
             db.commit()
             return {"detail": "El estudiante confirmó ver resultados. Generando..."}
-        else:
-            # Delegar el seguimiento al generador (Gemini/fallback)
-            previous_texts = [m.content for m in user_msgs]
-            bot_text = generate_open_followup(previous_texts, conversation_history, name_for_followup)
-            max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
-            next_order = (max_order or 0) + 1
-            bot_msg = ChatMessageModel(
-                session_id=session_id,
-                message_type="bot",
-                content=bot_text,
-                message_order=next_order,
-            )
-            db.add(bot_msg)
-            session.conversation_stage = "collecting"
-            session.last_activity = func.now()
-            db.commit()
-            db.refresh(bot_msg)
-            return {"bot_message": bot_msg}
+        # Aún no hay suficientes señales: continuar recolectando
+        previous_texts = [m.content for m in user_msgs]
+        bot_text = generate_open_followup(previous_texts, conversation_history, name_for_followup)
+        bot_msg = _save_bot_message(session_id, bot_text, db)
+        session.conversation_stage = ConversationStage.COLLECTING
+        session.last_activity = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(bot_msg)
+        return {"bot_message": bot_msg}
 
-    # Si estamos esperando confirmación del estudiante
-    if (session.conversation_stage or "").lower() == "confirm_results":
+    # --- Rama: esperando confirmación del estudiante ---
+    if current_stage == ConversationStage.CONFIRM_RESULTS:
         if _is_acceptance(last_user_text):
-            session.conversation_stage = "results"
-            session.last_activity = func.now()
+            session.conversation_stage = ConversationStage.RESULTS
+            session.last_activity = datetime.now(timezone.utc)
             db.commit()
             return {"detail": "El estudiante confirmó ver resultados. Generando..."}
-        else:
-            # Volver a etapa de recolección y continuar con seguimiento
-            previous_texts = [m.content for m in user_msgs]
-            bot_text = generate_open_followup(previous_texts, conversation_history, name_for_followup)
+        # No confirmó: volver a recolectar
+        previous_texts = [m.content for m in user_msgs]
+        bot_text = generate_open_followup(previous_texts, conversation_history, name_for_followup)
+        bot_msg = _save_bot_message(session_id, bot_text, db)
+        session.conversation_stage = ConversationStage.COLLECTING
+        session.last_activity = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(bot_msg)
+        return {"bot_message": bot_msg}
 
-            max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
-            next_order = (max_order or 0) + 1
-
-            bot_msg = ChatMessageModel(
-                session_id=session_id,
-                message_type="bot",
-                content=bot_text,
-                message_order=next_order
-            )
-            db.add(bot_msg)
-            session.conversation_stage = "collecting"
-            session.last_activity = func.now()
-            db.commit()
-            db.refresh(bot_msg)
-            return {"bot_message": bot_msg}
-
-    # Límite duro de 8 mensajes del usuario: forzar confirmación
-    if user_count >= 8 and (session.conversation_stage or "").lower() != "results":
+    # --- Rama: límite duro de 8 mensajes → forzar confirmación ---
+    if user_count >= 8 and current_stage != ConversationStage.RESULTS:
         user_texts = [m.content for m in user_msgs]
-        confirm_text_limit = generate_closing_message(user_texts, current_student.full_name)
-
-        max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
-        next_order = (max_order or 0) + 1
-
-        bot_msg = ChatMessageModel(
-            session_id=session_id,
-            message_type="bot",
-            content=confirm_text_limit,
-            message_order=next_order
-        )
-        db.add(bot_msg)
-        session.conversation_stage = "confirm_results"
-        session.last_activity = func.now()
+        confirm_text = generate_closing_message(user_texts, current_student.full_name)
+        bot_msg = _save_bot_message(session_id, confirm_text, db)
+        session.conversation_stage = ConversationStage.CONFIRM_RESULTS
+        session.last_activity = datetime.now(timezone.utc)
         db.commit()
         db.refresh(bot_msg)
         return {"bot_message": bot_msg, "awaiting_confirmation": True}
 
-    # Aviso proactivo al 7.º mensaje: pedir última señal antes de mostrar resultados
-    if user_count == 7 and (session.conversation_stage or "").lower() != "confirm_results":
+    # --- Rama: aviso proactivo en el 7.º mensaje ---
+    if user_count == 7 and current_stage != ConversationStage.CONFIRM_RESULTS:
         user_texts = [m.content for m in user_msgs]
-        confirm_text_5 = generate_closing_message(user_texts, current_student.full_name)
-
-        max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
-        next_order = (max_order or 0) + 1
-
-        bot_msg = ChatMessageModel(
-            session_id=session_id,
-            message_type="bot",
-            content=confirm_text_5,
-            message_order=next_order
-        )
-        db.add(bot_msg)
-        session.conversation_stage = "confirm_results"
-        session.last_activity = func.now()
+        confirm_text = generate_closing_message(user_texts, current_student.full_name)
+        bot_msg = _save_bot_message(session_id, confirm_text, db)
+        session.conversation_stage = ConversationStage.CONFIRM_RESULTS
+        session.last_activity = datetime.now(timezone.utc)
         db.commit()
         db.refresh(bot_msg)
         return {"bot_message": bot_msg, "awaiting_confirmation": True}
 
-    # Si ya hay suficientes señales sustantivas (>=5) -> pedir confirmación para mostrar resultados
-    # También requiere al menos 7 mensajes para no cerrar prematuramente en interacciones tempranas
+    # --- Rama: suficientes señales → pedir confirmación ---
     if signal_count >= 5 and user_count >= 7:
         user_texts = [m.content for m in user_msgs]
         confirm_text = generate_closing_message(user_texts, current_student.full_name)
-
-        max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
-        next_order = (max_order or 0) + 1
-
-        bot_msg = ChatMessageModel(
-            session_id=session_id,
-            message_type="bot",
-            content=confirm_text,
-            message_order=next_order
-        )
-        db.add(bot_msg)
-        session.conversation_stage = "confirm_results"
-        session.last_activity = func.now()
+        bot_msg = _save_bot_message(session_id, confirm_text, db)
+        session.conversation_stage = ConversationStage.CONFIRM_RESULTS
+        session.last_activity = datetime.now(timezone.utc)
         db.commit()
         db.refresh(bot_msg)
         return {"bot_message": bot_msg, "awaiting_confirmation": True}
 
-    # Caso general: generar pregunta de seguimiento con Gemini (o fallback)
+    # --- Caso general: seguimiento conversacional ---
     previous_texts = [m.content for m in user_msgs]
     bot_text = generate_open_followup(previous_texts, conversation_history, name_for_followup)
-
-    max_order = db.query(func.max(ChatMessageModel.message_order)).filter(ChatMessageModel.session_id == session_id).scalar()
-    next_order = (max_order or 0) + 1
-
-    bot_msg = ChatMessageModel(
-        session_id=session_id,
-        message_type="bot",
-        content=bot_text,
-        message_order=next_order
-    )
-    db.add(bot_msg)
-    session.last_activity = func.now()
+    bot_msg = _save_bot_message(session_id, bot_text, db)
+    session.last_activity = datetime.now(timezone.utc)
     db.commit()
     db.refresh(bot_msg)
-
     return {"bot_message": bot_msg}
 
-# Mensaje de bienvenida (opcional desde backend)
+
 @router.get("/welcome")
 def get_welcome_message():
     return {"message": "¡Bienvenido! Selecciona un modo para comenzar: guiado u abierto."}
 
-# Registrar respuesta del usuario (texto libre u opción múltiple)
+
 @router.post("/sessions/{session_id}/answers", response_model=UserAnswerSchema)
 def submit_answer(
     session_id: int,
     payload: UserSessionAnswerCreate,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Validar sesión del estudiante
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == session_id,
-        ChatSessionModel.user_id == current_student.user_id
-    ).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat no encontrada")
-
-    # Asegurar evaluación
+    session = _get_session_or_404(session_id, current_student.user_id, db)
     evaluation = ensure_evaluation_for_session(db, current_student.user_id, session_id)
 
-    # Crear respuesta
     db_answer = UserAnswerModel(
         evaluation_id=evaluation.evaluation_id,
         question_id=payload.question_id,
-        answer_text=getattr(payload, "answer_text", None),
-        selected_options=getattr(payload, "selected_options", None),
+        answer_text=payload.answer_text,
+        selected_options=payload.selected_options,
     )
     db.add(db_answer)
-
-    # Actualizar actividad
-    session.last_activity = func.now()
+    session.last_activity = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_answer)
     return db_answer
 
-# Completar evaluación y generar resultados (RIASEC + carreras)
+
 @router.post("/sessions/{session_id}/complete")
 def complete_evaluation(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == session_id,
-        ChatSessionModel.user_id == current_student.user_id
-    ).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat no encontrada")
-
+    session = _get_session_or_404(session_id, current_student.user_id, db)
     evaluation = ensure_evaluation_for_session(db, current_student.user_id, session_id)
-    # Generar y guardar resultados
     result = generate_and_save_results(db, evaluation.evaluation_id)
-    # Marcar evaluación como completada
     evaluation.status = "completed"
-    evaluation.completed_at = func.now()
-    # Marcar sesión como completada para que el frontend muestre resultados
+    evaluation.completed_at = datetime.now(timezone.utc)
     session.status = "completed"
-    session.conversation_stage = "results"
-    session.last_activity = func.now()
+    session.conversation_stage = ConversationStage.RESULTS
+    session.last_activity = datetime.now(timezone.utc)
     db.commit()
-    return {"detail": "Evaluación completada", "evaluation_id": evaluation.evaluation_id, "result_id": result.result_id}
+    return {
+        "detail": "Evaluación completada",
+        "evaluation_id": evaluation.evaluation_id,
+        "result_id": result.result_id,
+    }
 
-# Obtener resultados de una sesión
+
 @router.get("/sessions/{session_id}/results", response_model=EvaluationResultSchema)
 def get_session_results(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     evaluation = db.query(EvaluationModel).filter(EvaluationModel.session_id == session_id).first()
     if not evaluation or evaluation.user_id != current_student.user_id:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
-    # Usar el resultado más reciente por fecha de generación
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
+
     result = (
         db.query(EvaluationResultModel)
         .filter(EvaluationResultModel.evaluation_id == evaluation.evaluation_id)
@@ -460,61 +410,71 @@ def get_session_results(
         .first()
     )
     if not result:
-        raise HTTPException(status_code=404, detail="Resultados no generados aún")
-    # Sanitizar métricas para cumplir el esquema (valores numéricos)
-    metrics = result.metrics or {}
-    mv = metrics.get("model_version")
-    sm = metrics.get("source_mode")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resultados no generados aún")
+
+    # Sanitizar métricas para cumplir el esquema sin mutar el objeto ORM
     def _to_float(x):
         try:
             return float(x)
         except Exception:
             return None
+
+    metrics = dict(result.metrics or {})
+    mv = metrics.get("model_version")
     mv_num = _to_float(mv)
     if mv_num is None:
-        # Normalizar valores históricos ('v6', '6', etc.) a 6.0
-        mv_num = 6.0
+        mv_num = 6.0  # normaliza valores históricos ('v6', '6', etc.)
     metrics["model_version"] = mv_num
+
+    sm = metrics.get("source_mode")
     sm_num = _to_float(sm)
     if sm_num is None:
-        # guided -> 0.0; open -> 1.0 (por defecto guided)
         try:
-            sm_str = str(sm or "guided").lower()
+            sm_str = str(sm or ChatMode.GUIDED).lower()
         except Exception:
-            sm_str = "guided"
-        sm_num = 1.0 if sm_str == "open" else 0.0
+            sm_str = ChatMode.GUIDED
+        sm_num = 1.0 if sm_str == ChatMode.OPEN else 0.0
     metrics["source_mode"] = sm_num
-    result.metrics = metrics
-    return result
+
+    # Retornar schema construido desde el dict sanitizado (no muta el ORM)
+    return EvaluationResultSchema(
+        result_id=result.result_id,
+        evaluation_id=result.evaluation_id,
+        riasec_scores=result.riasec_scores,
+        top_careers=result.top_careers,
+        metrics=metrics,
+        generated_at=result.generated_at,
+    )
 
 
-# Eliminar sesión de chat y todo lo relacionado (cascada manual)
 @router.delete("/sessions/{session_id}")
 def delete_chat_session(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    session = db.query(ChatSessionModel).filter(
-        ChatSessionModel.session_id == session_id,
-        ChatSessionModel.user_id == current_student.user_id
-    ).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión de chat no encontrada")
+    session = _get_session_or_404(session_id, current_student.user_id, db)
 
-    # Borrar mensajes
-    db.query(ChatMessageModel).filter(ChatMessageModel.session_id == session_id).delete(synchronize_session=False)
+    db.query(ChatMessageModel).filter(
+        ChatMessageModel.session_id == session_id
+    ).delete(synchronize_session=False)
 
-    # Borrar evaluación y dependencias si existe
     evaluation = db.query(EvaluationModel).filter(EvaluationModel.session_id == session_id).first()
     if evaluation:
-        db.query(UserAnswerModel).filter(UserAnswerModel.evaluation_id == evaluation.evaluation_id).delete(synchronize_session=False)
-        db.query(EvaluationResultModel).filter(EvaluationResultModel.evaluation_id == evaluation.evaluation_id).delete(synchronize_session=False)
-        db.query(StudentFeedbackModel).filter(StudentFeedbackModel.evaluation_id == evaluation.evaluation_id).delete(synchronize_session=False)
-        db.query(EvaluatorCommentModel).filter(EvaluatorCommentModel.evaluation_id == evaluation.evaluation_id).delete(synchronize_session=False)
+        db.query(UserAnswerModel).filter(
+            UserAnswerModel.evaluation_id == evaluation.evaluation_id
+        ).delete(synchronize_session=False)
+        db.query(EvaluationResultModel).filter(
+            EvaluationResultModel.evaluation_id == evaluation.evaluation_id
+        ).delete(synchronize_session=False)
+        db.query(StudentFeedbackModel).filter(
+            StudentFeedbackModel.evaluation_id == evaluation.evaluation_id
+        ).delete(synchronize_session=False)
+        db.query(EvaluatorCommentModel).filter(
+            EvaluatorCommentModel.evaluation_id == evaluation.evaluation_id
+        ).delete(synchronize_session=False)
         db.delete(evaluation)
 
-    # Borrar sesión
     db.delete(session)
     db.commit()
     return {"detail": "Sesión eliminada correctamente"}

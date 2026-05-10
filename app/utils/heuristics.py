@@ -32,8 +32,16 @@ def is_acceptance(text: str) -> bool:
 
 def is_negative(text: str) -> bool:
     t = _normalize(text)
-    negatives = ["no", "no aun", "todavia no", "prefiero seguir", "seguir conversando"]
-    return any(t == n or n in t for n in negatives)
+    if not t:
+        return False
+    # Frases multi-palabra: substring match es fiable
+    multi_negatives = ["no aun", "todavia no", "prefiero seguir", "seguir conversando"]
+    if any(n in t for n in multi_negatives):
+        return True
+    # "no" solo: sólo coincide cuando es respuesta corta (máx 3 palabras) para no
+    # clasificar erróneamente señales vocacionales como "no me gusta la tecnología"
+    tokens = t.split()
+    return len(tokens) <= 3 and tokens[0] == "no"
 
 
 def is_task_request(text: str) -> bool:

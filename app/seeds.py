@@ -1,9 +1,20 @@
 import logging
+import os
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from .models import Question as QuestionModel, User as UserModel
 from .security import get_password_hash
+from .enums import UserRole
 
 logger = logging.getLogger(__name__)
+
+
+def _anchors_match(a: dict, b: dict) -> bool:
+    """Comprueba si el diccionario de anchors `a` contiene todas las claves y valores de `b`."""
+    try:
+        return all(str(k) in a and str(a[str(k)]) == str(v) for k, v in b.items())
+    except Exception:
+        return False
 
 
 def seed_riasec_questions(db: Session) -> dict:
@@ -101,11 +112,6 @@ def seed_riasec_questions(db: Session) -> dict:
                     anchors = (opts.get("anchors") or {})
                     # Si faltan claves 2,3,4 o los textos no coinciden, sobreescribimos anchors
                     expected_anchors = scale_options["anchors"]
-                    def _anchors_match(a: dict, b: dict) -> bool:
-                        try:
-                            return all(str(k) in a and str(a[str(k)]) == str(v) for k, v in b.items())
-                        except Exception:
-                            return False
                     if not _anchors_match(anchors, expected_anchors):
                         opts["anchors"] = expected_anchors
                         updated = True
@@ -122,8 +128,6 @@ def seed_riasec_questions(db: Session) -> dict:
                         updated = True
                     if updated:
                         skipped += 1  # contamos como skipped (no insert) pero se actualizó
-                    else:
-                        skipped += 1
                     continue
                 except Exception as e:
                     logger.warning("Error actualizando pregunta existente en seed, se reintentará inserción: %s", e)
@@ -145,20 +149,18 @@ def seed_riasec_questions(db: Session) -> dict:
 
 
 def seed_default_admins(db: Session) -> dict:
-    import os
-
     admins = [
         {
             "full_name": os.getenv("ADMIN_FULL_NAME", "Admin"),
-            "email": os.getenv("ADMIN_EMAIL", "kairos@gmail.com"),
+            "email": os.getenv("ADMIN_EMAIL", ""),
         },
         {
             "full_name": os.getenv("ADMIN_LUIS_FULL_NAME", "Luis Admin"),
-            "email": os.getenv("ADMIN_LUIS_EMAIL", "luis@gmail.com"),
+            "email": os.getenv("ADMIN_LUIS_EMAIL", ""),
         },
         {
             "full_name": os.getenv("ADMIN_KETY_FULL_NAME", "Katy Admin"),
-            "email": os.getenv("ADMIN_KETY_EMAIL", "katy@gmail.com"),
+            "email": os.getenv("ADMIN_KETY_EMAIL", ""),
         },
     ]
     password = os.getenv("ADMIN_PASSWORD")
@@ -171,7 +173,7 @@ def seed_default_admins(db: Session) -> dict:
         full_name = adm["full_name"]
         if not email:
             continue
-        existing = db.query(UserModel).filter(UserModel.email == email).first()
+        existing = db.query(UserModel).filter(func.lower(UserModel.email) == email.lower()).first()
         if existing:
             results.append(
                 {
@@ -186,7 +188,7 @@ def seed_default_admins(db: Session) -> dict:
             full_name=full_name,
             email=email,
             password_hash=get_password_hash(password),
-            role="admin",
+            role=UserRole.ADMIN,
             educational_institution=None,
             is_active=True,
         )

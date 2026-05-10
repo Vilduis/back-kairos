@@ -15,6 +15,7 @@ from ..security import verify_password, get_password_hash, create_access_token
 from ..deps import get_current_user, check_email_available
 from ..config import settings
 from ..services.email_service import send_password_reset_email
+from ..enums import UserRole
 
 router = APIRouter(
     tags=["authentication"],
@@ -62,7 +63,7 @@ def create_student(user: UserCreate, db: Session = Depends(get_db)):
         email=user.email.lower(),
         password_hash=get_password_hash(user.password),
         educational_institution=user.educational_institution,
-        role="student",
+        role=UserRole.STUDENT,
     )
     db.add(db_user)
     db.commit()
@@ -83,7 +84,7 @@ def request_password_reset(payload: PasswordResetRequest, db: Session = Depends(
         except Exception as e:
             logger.error("Error enviando email de reset a %s: %s", user.email, e)
         if settings.DEBUG:
-            return {"detail": "Si el correo existe, se ha enviado un enlace", "token": token}
+            logger.debug("Password reset token for %s: %s", user.email, token)
     return {"detail": "Si el correo existe, se ha enviado un enlace"}
 
 
@@ -91,16 +92,16 @@ def request_password_reset(payload: PasswordResetRequest, db: Session = Depends(
 def confirm_password_reset(payload: PasswordResetConfirm, db: Session = Depends(get_db)):
     reset = db.query(PasswordResetModel).filter(PasswordResetModel.token == payload.token).first()
     if not reset:
-        raise HTTPException(status_code=400, detail="Token inválido")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido")
     if reset.expires_at < datetime.now(timezone.utc):
         db.delete(reset)
         db.commit()
-        raise HTTPException(status_code=400, detail="Token expirado")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token expirado")
     user = db.query(UserModel).filter(UserModel.user_id == reset.user_id).first()
     if not user:
         db.delete(reset)
         db.commit()
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     user.password_hash = get_password_hash(payload.new_password)
     db.delete(reset)
     db.add(user)

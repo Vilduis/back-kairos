@@ -51,8 +51,7 @@ def recomendar_por_chat(payload: ChatTextInput) -> Dict[str, Any]:
     """
     Endpoint 1: Chat IA
     - Recibe el texto completo del chat
-    - Vectoriza con el vectorizador v6
-    - Predice el perfil 0-1 con el modelo v6
+    - Vectoriza y predice el perfil 0-1 con el pipeline v8
     - Usa recomendador interno (cosine_similarity)
     - Devuelve Top 3 carreras y el perfil convertido a 1-5
     """

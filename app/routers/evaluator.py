@@ -87,13 +87,13 @@ def get_evaluation_results(
 ):
     evaluation = db.query(EvaluationModel).filter(EvaluationModel.evaluation_id == evaluation_id).first()
     if not evaluation:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
     _require_student_assigned(current_evaluator.user_id, evaluation.user_id, db)
     results = db.query(EvaluationResultModel).filter(
         EvaluationResultModel.evaluation_id == evaluation_id
     ).first()
     if not results:
-        raise HTTPException(status_code=404, detail="Resultados no encontrados")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resultados no encontrados")
     return results
 
 
@@ -134,7 +134,7 @@ def get_student_results(
 def _require_evaluation_access(evaluator_id: int, evaluation_id: int, db: Session) -> EvaluationModel:
     evaluation = db.query(EvaluationModel).filter(EvaluationModel.evaluation_id == evaluation_id).first()
     if not evaluation:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
     _require_student_assigned(evaluator_id, evaluation.user_id, db)
     return evaluation
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
@@ -41,7 +41,7 @@ def create_user(
     db: Session = Depends(get_db),
 ):
     if user.role not in [UserRole.EVALUATOR, UserRole.ADMIN]:
-        raise HTTPException(status_code=400, detail="Rol no válido. Debe ser 'evaluator' o 'admin'")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rol no válido. Debe ser 'evaluator' o 'admin'")
     check_email_available(user.email, db)
     db_user = UserModel(
         full_name=user.full_name,
@@ -64,7 +64,7 @@ def get_users(
     order_by: str = "created_at",
     order_dir: str = "desc",
     skip: int = 0,
-    limit: int = 100,
+    limit: int = Query(default=100, le=500),
     current_admin: UserModel = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
@@ -101,7 +101,7 @@ def get_user(
 ):
     user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     return user
 
 
@@ -114,13 +114,13 @@ def update_user(
 ):
     user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
     apply_profile_update(user, user_update.full_name, user_update.email, user_update.educational_institution, db)
 
     if user_update.role is not None:
         if user_update.role not in [UserRole.STUDENT, UserRole.EVALUATOR, UserRole.ADMIN]:
-            raise HTTPException(status_code=400, detail="Rol no válido")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rol no válido")
         user.role = user_update.role
     if user_update.is_active is not None:
         user.is_active = user_update.is_active
@@ -138,11 +138,11 @@ def deactivate_user(
 ):
     user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     if user.user_id == current_admin.user_id:
-        raise HTTPException(status_code=400, detail="No puedes desactivar tu propia cuenta")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No puedes desactivar tu propia cuenta")
     if not user.is_active:
-        raise HTTPException(status_code=400, detail="El usuario ya se encuentra desactivado")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El usuario ya se encuentra desactivado")
     user.is_active = False
     db.commit()
     return {"detail": "Usuario desactivado correctamente. Sus datos han sido conservados."}
@@ -157,16 +157,16 @@ def assign_student_to_evaluator(
 ):
     student = db.query(UserModel).filter(UserModel.user_id == student_id, UserModel.role == UserRole.STUDENT).first()
     if not student:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado")
     evaluator = db.query(UserModel).filter(UserModel.user_id == evaluator_id, UserModel.role == UserRole.EVALUATOR).first()
     if not evaluator:
-        raise HTTPException(status_code=404, detail="Evaluador no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluador no encontrado")
     existing = db.query(EvaluatorAssignment).filter(
         EvaluatorAssignment.student_id == student_id,
         EvaluatorAssignment.evaluator_id == evaluator_id,
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Esta asignación ya existe")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Esta asignación ya existe")
     db.add(EvaluatorAssignment(student_id=student_id, evaluator_id=evaluator_id))
     db.commit()
     return {"detail": "Asignación creada exitosamente"}
@@ -176,9 +176,9 @@ def assign_student_to_evaluator(
 def list_assignments(
     evaluator_id: Optional[int] = None,
     student_id: Optional[int] = None,
-    status: Optional[str] = None,
+    assignment_status: Optional[str] = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = Query(default=100, le=500),
     current_admin: UserModel = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
@@ -190,10 +190,10 @@ def list_assignments(
         query = query.filter(EvaluatorAssignment.evaluator_id == evaluator_id)
     if student_id is not None:
         query = query.filter(EvaluatorAssignment.student_id == student_id)
-    if status is not None:
-        if status not in ["active", "inactive"]:
-            raise HTTPException(status_code=400, detail="Estado no válido")
-        query = query.filter(EvaluatorAssignment.status == status)
+    if assignment_status is not None:
+        if assignment_status not in ["active", "inactive"]:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Estado no válido")
+        query = query.filter(EvaluatorAssignment.status == assignment_status)
     return query.offset(skip).limit(limit).all()
 
 
@@ -205,7 +205,7 @@ def delete_assignment(
 ):
     assignment = db.query(EvaluatorAssignment).filter(EvaluatorAssignment.assignment_id == assignment_id).first()
     if not assignment:
-        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asignación no encontrada")
     db.delete(assignment)
     db.commit()
 
@@ -215,7 +215,7 @@ def list_student_feedback(
     student_id: Optional[int] = None,
     evaluation_id: Optional[int] = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = Query(default=100, le=500),
     order_dir: str = "desc",
     current_admin: UserModel = Depends(get_current_admin),
     db: Session = Depends(get_db),

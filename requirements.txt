@@ -20,14 +20,10 @@ python-jose[cryptography]==3.5.0   # Actualizado: parchea CVE-2024-33663 y CVE-2
 numpy==1.26.4
 scipy==1.13.1
 scikit-learn==1.6.1
-imbalanced-learn==0.13.0
 joblib==1.4.2
 
 # IA Generativa
 google-genai==1.39.1
 
 # Correos
-resend==2.27.0
-
-# Migraciones
-alembic==1.13.1
+# resend==2.27.0  # instalado pero no usado; se usa smtplib stdlib

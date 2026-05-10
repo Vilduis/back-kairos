@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -60,7 +60,7 @@ class ChatSessionBase(BaseModel):
     conversation_stage: Optional[str] = None
 
 class ChatSessionCreate(ChatSessionBase):
-    user_id: int
+    pass
 
 class ChatSession(ChatSessionBase):
     model_config = ConfigDict(from_attributes=True)
@@ -162,7 +162,7 @@ class EvaluationResult(EvaluationResultBase):
 
 # Feedback Schemas
 class StudentFeedbackBase(BaseModel):
-    rating: int
+    rating: int = Field(..., ge=1, le=5)
     comment: Optional[str] = None
 
 class StudentFeedbackCreate(StudentFeedbackBase):

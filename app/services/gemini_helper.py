@@ -113,7 +113,7 @@ def generate_closing_message(user_texts: List[str], student_name: Optional[str] 
                 "2. Mencione 2 o 3 temas concretos que compartió (ej: programación, IA, matemáticas).\n"
                 "3. Diga que ya tienes suficiente información para estimar su perfil.\n"
                 "4. Pregunte si quiere ver sus resultados.\n"
-                "4. Use un tono cálido y motivador.\n"
+                "5. Use un tono cálido y motivador.\n"
                 f"Ejemplo: '¡{name_part or 'Ana'}, con todo lo que me contaste sobre programación e IA ya tengo tu perfil! "
                 "¿Quieres ver tus carreras recomendadas? Responde sí o no.'\n"
                 "Responde SOLO con el mensaje, sin comillas."

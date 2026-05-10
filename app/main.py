@@ -4,9 +4,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 
-from dotenv import load_dotenv
-load_dotenv()
-
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,7 +19,30 @@ logger = logging.getLogger(__name__)
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Vocational Chatbot API", debug=settings.DEBUG)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup ---
+    try:
+        init_recommender_artifacts()
+    except Exception as e:
+        logger.error(f"Error cargando artefactos del recomendador: {e}")
+
+    if settings.DEBUG or settings.SEED_ON_STARTUP:
+        db = SessionLocal()
+        try:
+            seed_default_admins(db)
+            seed_riasec_questions(db)
+        except Exception as e:
+            logger.error(f"Error ejecutando seeds: {e}")
+        finally:
+            db.close()
+
+    yield  # La app corre aquí
+    # --- Shutdown (sin acciones necesarias) ---
+
+
+app = FastAPI(title="Vocational Chatbot API", debug=settings.DEBUG, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,26 +58,6 @@ app.include_router(admin.router)
 app.include_router(evaluator.router)
 app.include_router(chat.router)
 app.include_router(recommendation.router)
-
-
-@app.on_event("startup")
-def _startup():
-    try:
-        init_recommender_artifacts()
-    except Exception as e:
-        logger.error(f"Error cargando artefactos del recomendador: {e}")
-
-    if not (settings.DEBUG or settings.SEED_ON_STARTUP):
-        return
-
-    db = SessionLocal()
-    try:
-        seed_default_admins(db)
-        seed_riasec_questions(db)
-    except Exception as e:
-        logger.error(f"Error ejecutando seeds: {e}")
-    finally:
-        db.close()
 
 
 @app.get("/")

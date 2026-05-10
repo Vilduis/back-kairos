@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -52,12 +52,12 @@ def get_my_evaluation_results(
         EvaluationModel.user_id == current_user.user_id,
     ).first()
     if not evaluation:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
     result = db.query(EvaluationResultModel).filter(
         EvaluationResultModel.evaluation_id == evaluation_id
     ).first()
     if not result:
-        raise HTTPException(status_code=404, detail="Resultados no generados aún")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resultados no generados aún")
     return result
 
 
@@ -73,7 +73,7 @@ def submit_feedback(
         EvaluationModel.user_id == current_user.user_id,
     ).first()
     if not evaluation:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
     feedback = StudentFeedbackModel(
         evaluation_id=evaluation_id,
         user_id=current_user.user_id,
@@ -97,11 +97,11 @@ def get_my_feedback(
         EvaluationModel.user_id == current_user.user_id,
     ).first()
     if not evaluation:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
     feedback = db.query(StudentFeedbackModel).filter(
         StudentFeedbackModel.evaluation_id == evaluation_id,
         StudentFeedbackModel.user_id == current_user.user_id,
     ).order_by(StudentFeedbackModel.created_at.desc()).first()
     if not feedback:
-        raise HTTPException(status_code=404, detail="Feedback no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback no encontrado")
     return feedback
