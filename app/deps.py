@@ -56,6 +56,21 @@ def check_email_available(email: str, db: Session, exclude_user_id: Optional[int
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email ya registrado")
 
 
+def find_reactivatable_user(email: str, db: Session) -> Optional[models.User]:
+    """Resuelve un email para registro respetando el borrado lógico.
+
+    - Devuelve el usuario INACTIVO dueño del email (candidato a reactivación).
+    - Lanza 400 si el email pertenece a un usuario ACTIVO.
+    - Devuelve None si el email está libre (registro nuevo).
+    """
+    user = db.query(models.User).filter(func.lower(models.User.email) == email.lower()).first()
+    if user is None:
+        return None
+    if user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email ya registrado")
+    return user
+
+
 def apply_profile_update(user: models.User, full_name, email, educational_institution, db: Session) -> None:
     if full_name is not None:
         user.full_name = full_name

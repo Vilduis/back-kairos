@@ -6,7 +6,7 @@ from typing import List, Optional
 from ..db import get_db
 from ..models import User as UserModel, EvaluatorAssignment, StudentFeedback as StudentFeedbackModel
 from ..schemas import User as UserSchema, UserCreate, UserUpdate, EvaluatorAssignment as EvaluatorAssignmentSchema, StudentFeedback as StudentFeedbackSchema
-from ..deps import get_current_admin, check_email_available, apply_profile_update
+from ..deps import get_current_admin, check_email_available, apply_profile_update, find_reactivatable_user
 from ..security import get_password_hash
 from ..enums import UserRole
 
@@ -42,7 +42,17 @@ def create_user(
 ):
     if user.role not in [UserRole.EVALUATOR, UserRole.ADMIN]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rol no válido. Debe ser 'evaluator' o 'admin'")
-    check_email_available(user.email, db)
+    # Reactiva la cuenta si el email pertenece a un usuario dado de baja (borrado lógico).
+    existing = find_reactivatable_user(user.email, db)
+    if existing:
+        existing.full_name = user.full_name
+        existing.password_hash = get_password_hash(user.password)
+        existing.educational_institution = user.educational_institution
+        existing.role = user.role
+        existing.is_active = True
+        db.commit()
+        db.refresh(existing)
+        return existing
     db_user = UserModel(
         full_name=user.full_name,
         email=user.email.lower(),
@@ -115,6 +125,29 @@ def update_user(
     user = db.query(UserModel).filter(UserModel.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    # Los estudiantes son dueños de su propia información de perfil: el administrador
+    # solo puede cambiar su estado (activo/inactivo), no editar sus datos ni su rol.
+    if user.role == UserRole.STUDENT:
+        intenta_modificar_perfil = (
+            (user_update.full_name is not None and user_update.full_name != user.full_name)
+            or (user_update.email is not None and user_update.email.lower() != user.email.lower())
+            or (
+                user_update.educational_institution is not None
+                and user_update.educational_institution != user.educational_institution
+            )
+            or (user_update.role is not None and user_update.role != user.role)
+        )
+        if intenta_modificar_perfil:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Solo se puede cambiar el estado de un estudiante; su información de perfil no es editable por el administrador.",
+            )
+        if user_update.is_active is not None:
+            user.is_active = user_update.is_active
+        db.commit()
+        db.refresh(user)
+        return user
 
     apply_profile_update(user, user_update.full_name, user_update.email, user_update.educational_institution, db)
 

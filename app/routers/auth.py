@@ -12,7 +12,7 @@ from ..db import get_db
 from ..models import User as UserModel, PasswordReset as PasswordResetModel
 from ..schemas import User as UserSchema, UserCreate, TokenWithUser, PasswordResetRequest, PasswordResetConfirm
 from ..security import verify_password, get_password_hash, create_access_token
-from ..deps import get_current_user, check_email_available
+from ..deps import get_current_user, find_reactivatable_user
 from ..config import settings
 from ..services.email_service import send_password_reset_email
 from ..enums import UserRole
@@ -57,7 +57,18 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 
 @router.post("/signup", response_model=UserSchema)
 def create_student(user: UserCreate, db: Session = Depends(get_db)):
-    check_email_available(user.email, db)
+    # Si el email pertenece a una cuenta dada de baja (borrado lógico), se reactiva
+    # en lugar de bloquear el registro. Si pertenece a una cuenta activa, lanza 400.
+    existing = find_reactivatable_user(user.email, db)
+    if existing:
+        existing.full_name = user.full_name
+        existing.password_hash = get_password_hash(user.password)
+        existing.educational_institution = user.educational_institution
+        existing.role = UserRole.STUDENT
+        existing.is_active = True
+        db.commit()
+        db.refresh(existing)
+        return existing
     db_user = UserModel(
         full_name=user.full_name,
         email=user.email.lower(),
