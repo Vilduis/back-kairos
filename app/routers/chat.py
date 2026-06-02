@@ -200,12 +200,25 @@ def get_chat_messages(
     ).order_by(ChatMessageModel.message_order).all()
 
 
-@router.get("/sessions/{session_id}/next-question", response_model=QuestionSchema)
+@router.get("/sessions/{session_id}/next-question")
 def get_next_question(
     session_id: int,
     current_student: UserModel = Depends(get_current_student),
     db: Session = Depends(get_db),
 ):
+    """Devuelve la primera pregunta guiada NO respondida de la sesión.
+
+    Es idempotente: llamarlo varias veces (al retomar, en StrictMode, etc.)
+    devuelve siempre la misma pregunta pendiente hasta que se responda, en vez
+    de avanzar un puntero a ciegas. Así no se saltan preguntas y se restaura el
+    punto exacto donde quedó el estudiante.
+
+    Respuesta:
+      - {"completed": False, "question": {...}, "total": N, "answered": K}
+      - {"completed": True,  "question": None,  "total": N, "answered": N}
+
+    `total` y `answered` permiten mostrar el progreso "Pregunta X de N".
+    """
     session = _get_session_or_404(
         session_id,
         current_student.user_id,
@@ -214,28 +227,93 @@ def get_next_question(
         detail="Sesión de chat guiado no encontrada",
     )
 
-    if session.current_question_id:
-        current_q = db.query(QuestionModel).filter(
-            QuestionModel.question_id == session.current_question_id
-        ).first()
-        next_question = db.query(QuestionModel).filter(
-            QuestionModel.display_order > (current_q.display_order or 0),
-            QuestionModel.compatible_modes.in_([ChatMode.GUIDED, "both"]),
-        ).order_by(QuestionModel.display_order.asc()).first()
-    else:
-        next_question = db.query(QuestionModel).filter(
-            QuestionModel.compatible_modes.in_([ChatMode.GUIDED, "both"]),
-        ).order_by(QuestionModel.display_order.asc()).first()
+    # Total de preguntas guiadas configuradas
+    guided_filter = QuestionModel.compatible_modes.in_([ChatMode.GUIDED, "both"])
+    total_guided = db.query(QuestionModel).filter(guided_filter).count()
 
-    if not next_question:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No hay preguntas disponibles")
+    # IDs ya respondidos en esta sesión (si ya existe evaluación)
+    answered_ids: set[int] = set()
+    evaluation = db.query(EvaluationModel).filter(
+        EvaluationModel.session_id == session_id
+    ).first()
+    if evaluation:
+        rows = db.query(UserAnswerModel.question_id).filter(
+            UserAnswerModel.evaluation_id == evaluation.evaluation_id
+        ).all()
+        answered_ids = {qid for (qid,) in rows if qid is not None}
 
-    # Normaliza anchors Likert si es necesario (cambios persistidos con el siguiente commit)
+    answered_count = len(answered_ids)
+
+    # Primera pregunta guiada (por display_order) que aún no esté respondida
+    filters = [guided_filter]
+    if answered_ids:
+        filters.append(QuestionModel.question_id.notin_(answered_ids))
+    next_question = db.query(QuestionModel).filter(*filters).order_by(
+        QuestionModel.display_order.asc()
+    ).first()
+
+    if next_question is None:
+        # 404 sólo si NO hay preguntas guiadas configuradas (error real).
+        if total_guided == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No hay preguntas configuradas",
+            )
+        # Todas respondidas → el test está listo para completarse
+        return {
+            "completed": True,
+            "question": None,
+            "total": total_guided,
+            "answered": total_guided,
+        }
+
+    # Normaliza anchors Likert si es necesario (persistido con el commit siguiente)
     _normalize_question_anchors(next_question)
 
+    # current_question_id ya es sólo informativo (la lógica usa answered_ids)
     session.current_question_id = next_question.question_id
     db.commit()
-    return next_question
+    return {
+        "completed": False,
+        "question": QuestionSchema.model_validate(next_question),
+        "total": total_guided,
+        "answered": answered_count,
+    }
+
+
+@router.get("/guided/first-question")
+def get_guided_first_question(
+    current_student: UserModel = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """Primera pregunta guiada SIN crear sesión ni persistir nada.
+
+    Permite mostrar la primera pregunta del Test RIASEC sin ensuciar el
+    historial: la sesión se crea recién cuando el estudiante responde. Misma
+    forma de respuesta que `/next-question` para reutilizar el manejo en el
+    frontend.
+    """
+    guided_filter = QuestionModel.compatible_modes.in_([ChatMode.GUIDED, "both"])
+    total_guided = db.query(QuestionModel).filter(guided_filter).count()
+    first_question = db.query(QuestionModel).filter(guided_filter).order_by(
+        QuestionModel.display_order.asc()
+    ).first()
+
+    if first_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No hay preguntas configuradas",
+        )
+
+    # Normaliza anchors Likert (persiste la corrección si la hubo)
+    _normalize_question_anchors(first_question)
+    db.commit()
+    return {
+        "completed": False,
+        "question": QuestionSchema.model_validate(first_question),
+        "total": total_guided,
+        "answered": 0,
+    }
 
 
 @router.post("/sessions/{session_id}/open/next")
@@ -358,13 +436,24 @@ def submit_answer(
     session = _get_session_or_404(session_id, current_student.user_id, db)
     evaluation = ensure_evaluation_for_session(db, current_student.user_id, session_id)
 
-    db_answer = UserAnswerModel(
-        evaluation_id=evaluation.evaluation_id,
-        question_id=payload.question_id,
-        answer_text=payload.answer_text,
-        selected_options=payload.selected_options,
-    )
-    db.add(db_answer)
+    # Si ya existe respuesta para esta pregunta, se actualiza (no se duplica).
+    # Evita inflar el puntaje Likert si el estudiante responde dos veces o
+    # reenvía al retomar la sesión.
+    db_answer = db.query(UserAnswerModel).filter(
+        UserAnswerModel.evaluation_id == evaluation.evaluation_id,
+        UserAnswerModel.question_id == payload.question_id,
+    ).first()
+    if db_answer:
+        db_answer.answer_text = payload.answer_text
+        db_answer.selected_options = payload.selected_options
+    else:
+        db_answer = UserAnswerModel(
+            evaluation_id=evaluation.evaluation_id,
+            question_id=payload.question_id,
+            answer_text=payload.answer_text,
+            selected_options=payload.selected_options,
+        )
+        db.add(db_answer)
     session.last_activity = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_answer)

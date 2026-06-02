@@ -161,8 +161,17 @@ class EvaluationResult(EvaluationResultBase):
     generated_at: datetime
 
 # Feedback Schemas
+class FeedbackDimensions(BaseModel):
+    """Puntajes por dimensión del feedback (escala 1-5)."""
+    ease_of_use: int = Field(..., ge=1, le=5)      # ¿fácil de usar y entender?
+    clarity: int = Field(..., ge=1, le=5)          # ¿preguntas claras?
+    usefulness: int = Field(..., ge=1, le=5)       # ¿recomendaciones útiles?
+    interaction: int = Field(..., ge=1, le=5)      # ¿interacción sin dificultades?
+    satisfaction: int = Field(..., ge=1, le=5)     # ¿satisfecho con la experiencia?
+
 class StudentFeedbackBase(BaseModel):
     rating: int = Field(..., ge=1, le=5)
+    dimension_ratings: Optional[FeedbackDimensions] = None
     comment: Optional[str] = None
 
 class StudentFeedbackCreate(StudentFeedbackBase):
@@ -179,7 +188,11 @@ class StudentFeedback(StudentFeedbackBase):
 
 # Enviar feedback del estudiante sin requerir user_id explícito
 class StudentFeedbackSubmit(StudentFeedbackBase):
-    pass
+    dimension_ratings: FeedbackDimensions  # requerido al enviar
+
+# Actualizar solo el comentario (envío independiente, paso 2)
+class StudentFeedbackCommentUpdate(BaseModel):
+    comment: Optional[str] = None
 
 # Assignment Schemas
 class EvaluatorAssignmentBase(BaseModel):

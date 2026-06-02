@@ -1,10 +1,10 @@
 import logging
-import os
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from .models import Question as QuestionModel, User as UserModel
 from .security import get_password_hash
 from .enums import UserRole
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -151,19 +151,19 @@ def seed_riasec_questions(db: Session) -> dict:
 def seed_default_admins(db: Session) -> dict:
     admins = [
         {
-            "full_name": os.getenv("ADMIN_FULL_NAME", "Admin"),
-            "email": os.getenv("ADMIN_EMAIL", ""),
+            "full_name": settings.ADMIN_FULL_NAME,
+            "email": settings.ADMIN_EMAIL or "",
         },
         {
-            "full_name": os.getenv("ADMIN_LUIS_FULL_NAME", "Luis Admin"),
-            "email": os.getenv("ADMIN_LUIS_EMAIL", ""),
+            "full_name": settings.ADMIN_LUIS_FULL_NAME,
+            "email": settings.ADMIN_LUIS_EMAIL or "",
         },
         {
-            "full_name": os.getenv("ADMIN_KETY_FULL_NAME", "Katy Admin"),
-            "email": os.getenv("ADMIN_KETY_EMAIL", ""),
+            "full_name": settings.ADMIN_KETY_FULL_NAME,
+            "email": settings.ADMIN_KETY_EMAIL or "",
         },
     ]
-    password = os.getenv("ADMIN_PASSWORD")
+    password = settings.ADMIN_PASSWORD
     if not password:
         return {"inserted": 0, "skipped": 0, "details": [], "reason": "ADMIN_PASSWORD no configurado"}
 

@@ -19,6 +19,15 @@ class Settings(BaseSettings):
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
     SEED_ON_STARTUP: bool = False
 
+    # Admins por defecto (seed). En local salen del .env; en Render, de las env vars.
+    ADMIN_FULL_NAME: str = "Admin"
+    ADMIN_EMAIL: Optional[str] = None
+    ADMIN_LUIS_FULL_NAME: str = "Luis Admin"
+    ADMIN_LUIS_EMAIL: Optional[str] = None
+    ADMIN_KETY_FULL_NAME: str = "Katy Admin"
+    ADMIN_KETY_EMAIL: Optional[str] = None
+    ADMIN_PASSWORD: Optional[str] = None
+
     # Model artifacts path (optional)
     MODEL_ARTIFACTS_PATH: Optional[str] = None
 

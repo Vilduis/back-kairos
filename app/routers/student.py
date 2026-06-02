@@ -4,7 +4,7 @@ from typing import List
 
 from ..db import get_db
 from ..models import User as UserModel, Evaluation as EvaluationModel, EvaluationResult as EvaluationResultModel, StudentFeedback as StudentFeedbackModel
-from ..schemas import User as UserSchema, UserUpdate, Evaluation as EvaluationSchema, EvaluationResult as EvaluationResultSchema, StudentFeedbackSubmit, StudentFeedback as StudentFeedbackSchema
+from ..schemas import User as UserSchema, UserUpdate, Evaluation as EvaluationSchema, EvaluationResult as EvaluationResultSchema, StudentFeedbackSubmit, StudentFeedbackCommentUpdate, StudentFeedback as StudentFeedbackSchema
 from ..deps import get_current_student, apply_profile_update
 
 router = APIRouter(
@@ -74,13 +74,58 @@ def submit_feedback(
     ).first()
     if not evaluation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
-    feedback = StudentFeedbackModel(
-        evaluation_id=evaluation_id,
-        user_id=current_user.user_id,
-        rating=payload.rating,
-        comment=payload.comment,
-    )
-    db.add(feedback)
+    # Upsert: si ya existe feedback para esta evaluación, se actualiza (no se duplica).
+    feedback = db.query(StudentFeedbackModel).filter(
+        StudentFeedbackModel.evaluation_id == evaluation_id,
+        StudentFeedbackModel.user_id == current_user.user_id,
+    ).order_by(StudentFeedbackModel.created_at.desc()).first()
+    if feedback:
+        feedback.rating = payload.rating
+        feedback.dimension_ratings = payload.dimension_ratings.model_dump()
+        # Solo sobrescribe el comentario si viene en este envío (no lo borra).
+        if payload.comment is not None:
+            feedback.comment = payload.comment
+    else:
+        feedback = StudentFeedbackModel(
+            evaluation_id=evaluation_id,
+            user_id=current_user.user_id,
+            rating=payload.rating,
+            dimension_ratings=payload.dimension_ratings.model_dump(),
+            comment=payload.comment,
+        )
+        db.add(feedback)
+    db.commit()
+    db.refresh(feedback)
+    return feedback
+
+
+@router.patch("/evaluations/{evaluation_id}/feedback", response_model=StudentFeedbackSchema)
+def update_feedback_comment(
+    evaluation_id: int,
+    payload: StudentFeedbackCommentUpdate,
+    current_user: UserModel = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """Actualiza solo el comentario de un feedback ya creado (envío independiente).
+
+    Requiere que el estudiante haya enviado antes su calificación.
+    """
+    evaluation = db.query(EvaluationModel).filter(
+        EvaluationModel.evaluation_id == evaluation_id,
+        EvaluationModel.user_id == current_user.user_id,
+    ).first()
+    if not evaluation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluación no encontrada")
+    feedback = db.query(StudentFeedbackModel).filter(
+        StudentFeedbackModel.evaluation_id == evaluation_id,
+        StudentFeedbackModel.user_id == current_user.user_id,
+    ).order_by(StudentFeedbackModel.created_at.desc()).first()
+    if not feedback:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Primero envía tu calificación",
+        )
+    feedback.comment = payload.comment
     db.commit()
     db.refresh(feedback)
     return feedback

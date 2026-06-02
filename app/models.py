@@ -133,8 +133,9 @@ class StudentFeedback(Base):
     feedback_id = Column(Integer, primary_key=True, index=True)
     evaluation_id = Column(Integer, ForeignKey("evaluations.evaluation_id"))
     user_id = Column(Integer, ForeignKey("users.user_id"))
-    rating = Column(Integer)  # 1-5
-    comment = Column(Text)
+    rating = Column(Integer)  # promedio/nota global 1-5
+    dimension_ratings = Column(JSON)  # puntajes por dimensión: {ease_of_use, clarity, usefulness, interaction, satisfaction}
+    comment = Column(Text)  # solo texto libre del estudiante
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     evaluation = relationship("Evaluation", back_populates="student_feedbacks")
