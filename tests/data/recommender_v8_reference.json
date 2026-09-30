@@ -1,0 +1,1024 @@
+{
+ "cases": [
+  {
+   "profile": {
+    "R": 0.23282916666666695,
+    "I": 0.7701422619047621,
+    "A": 0.1716285714285716,
+    "S": 0.1687416666666667,
+    "E": 0.1284929563492064,
+    "C": 0.22959970238095262
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Biomédica",
+     "score": 0.91,
+     "description": "Se alinea con tus intereses Investigador (I) y Realista (R). En Ingeniería Biomédica, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Medicina",
+     "score": 0.91,
+     "description": "Se alinea con tus intereses Investigador (I) y Realista (R). En Medicina, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ciencias de la Salud"
+    },
+    {
+     "career": "Medicina Veterinaria",
+     "score": 0.91,
+     "description": "Se alinea con tus intereses Investigador (I) y Realista (R). En Medicina Veterinaria, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ciencias de la Salud"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.90752530849461,
+    "I": 0.3417116692078173,
+    "A": 0.1407561083116233,
+    "S": 0.08953794812106552,
+    "E": 0.14998249215788662,
+    "C": 0.23614235342223572
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.96,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.93,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Civil",
+     "score": 0.93,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Civil, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.1477712586129428,
+    "I": 0.15248702584846366,
+    "A": 0.23133427788216285,
+    "S": 0.2970254588456865,
+    "E": 0.145583937331025,
+    "C": 0.18349599975038403
+   },
+   "top_careers": [
+    {
+     "career": "Traducción e Interpretación Profesional",
+     "score": 0.85,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Traducción e Interpretación Profesional, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Ciencias Humanas"
+    },
+    {
+     "career": "Música",
+     "score": 0.83,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Música, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Artes Escénicas",
+     "score": 0.82,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Artes Escénicas, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.10062417357288707,
+    "I": 0.08350047395769918,
+    "A": 0.29826564153439233,
+    "S": 0.9913333333333333,
+    "E": 0.40353065476190425,
+    "C": 0.2516368461399713
+   },
+   "top_careers": [
+    {
+     "career": "Educación y Gestión del Aprendizaje",
+     "score": 0.95,
+     "description": "Se alinea con tus intereses Social (S) y Emprendedor (E). En Educación y Gestión del Aprendizaje, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Educación"
+    },
+    {
+     "career": "Ciencias Políticas",
+     "score": 0.91,
+     "description": "Se alinea con tus intereses Social (S) y Emprendedor (E). En Ciencias Políticas, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Economía"
+    },
+    {
+     "career": "Relaciones Internacionales",
+     "score": 0.91,
+     "description": "Se alinea con tus intereses Social (S) y Emprendedor (E). En Relaciones Internacionales, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Derecho"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.25520387565495684,
+    "I": 0.1441786402979378,
+    "A": 0.15000447325722804,
+    "S": 0.336737973419696,
+    "E": 0.8975242424242427,
+    "C": 0.3667469353430032
+   },
+   "top_careers": [
+    {
+     "career": "Administración y Gerencia del Emprendimiento",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración y Gerencia del Emprendimiento, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración y Ciencia de Datos para Negocios ",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración y Ciencia de Datos para Negocios , el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.21857291666666717,
+    "I": 0.17535059523809537,
+    "A": 0.2981208333333332,
+    "S": 0.26618750000000085,
+    "E": 0.15890833333333373,
+    "C": 0.8252648809523809
+   },
+   "top_careers": [
+    {
+     "career": "Contabilidad y Administración",
+     "score": 0.89,
+     "description": "Se alinea con tus intereses Convencional (C) y Artístico (A). En Contabilidad y Administración, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Contabilidad y Finanzas",
+     "score": 0.89,
+     "description": "Se alinea con tus intereses Convencional (C) y Artístico (A). En Contabilidad y Finanzas, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Ciencias de la Computación",
+     "score": 0.86,
+     "description": "Se alinea con tus intereses Convencional (C) y Artístico (A). En Ciencias de la Computación, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.4602844714009963,
+    "I": 0.3252108624667819,
+    "A": 0.3237731169251408,
+    "S": 0.22209437733278595,
+    "E": 0.27102794550657555,
+    "C": 0.295631244632327
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.83,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Civil",
+     "score": 0.82,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Civil, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.82,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.10249156600026563,
+    "I": 0.1472807890210077,
+    "A": 0.3467562995011283,
+    "S": 0.29072141374499766,
+    "E": 0.14655052552021686,
+    "C": 0.1553724445721173
+   },
+   "top_careers": [
+    {
+     "career": "Traducción e Interpretación Profesional",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Traducción e Interpretación Profesional, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Ciencias Humanas"
+    },
+    {
+     "career": "Música",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Música, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Artes Escénicas",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Artes Escénicas, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.41934954379977535,
+    "I": 0.26207972014772496,
+    "A": 0.19944259951119617,
+    "S": 0.1782294272276366,
+    "E": 0.18841284409902137,
+    "C": 0.22403485919221552
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.88,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Civil",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Civil, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.10201026071135164,
+    "I": 0.10314754147198796,
+    "A": 0.1791818952226109,
+    "S": 0.29014558971522625,
+    "E": 0.4779262136451424,
+    "C": 0.2912409162654319
+   },
+   "top_careers": [
+    {
+     "career": "Administración y Ciencia de Datos para Negocios ",
+     "score": 0.95,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración y Ciencia de Datos para Negocios , el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración",
+     "score": 0.95,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración y Recursos Humanos",
+     "score": 0.95,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración y Recursos Humanos, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.3399250000000006,
+    "I": 1.0,
+    "A": 0.34112500000000046,
+    "S": 0.09591130952380979,
+    "E": 0.0606625000000001,
+    "C": 0.08082797619047617
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Ambiental",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Investigador (I) y Artístico (A). En Ingeniería Ambiental, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Biomédica",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Investigador (I) y Artístico (A). En Ingeniería Biomédica, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Medicina",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Investigador (I) y Artístico (A). En Medicina, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ciencias de la Salud"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.1428980978749455,
+    "I": 0.10531452066109949,
+    "A": 0.19507954792811133,
+    "S": 0.4110253559262737,
+    "E": 0.3502601406265684,
+    "C": 0.4113109888554738
+   },
+   "top_careers": [
+    {
+     "career": "Educación y Gestión del Aprendizaje",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Educación y Gestión del Aprendizaje, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Educación"
+    },
+    {
+     "career": "Administración y Agronegocios",
+     "score": 0.88,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Administración y Agronegocios, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración y Recursos Humanos",
+     "score": 0.88,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Administración y Recursos Humanos, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.1268267269349252,
+    "I": 0.31776782343365545,
+    "A": 0.7706937671397227,
+    "S": 0.26886450128542644,
+    "E": 0.15722365438410657,
+    "C": 0.16089531433264576
+   },
+   "top_careers": [
+    {
+     "career": "Música",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Artístico (A) y Investigador (I). En Música, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Diseño Industrial",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Artístico (A) y Investigador (I). En Diseño Industrial, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Diseño"
+    },
+    {
+     "career": "Arquitectura",
+     "score": 0.91,
+     "description": "Se alinea con tus intereses Artístico (A) y Investigador (I). En Arquitectura, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Arquitectura"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.9418861111111113,
+    "I": 0.34739863575825775,
+    "A": 0.12967569910274074,
+    "S": 0.08914681372549042,
+    "E": 0.18549923656372433,
+    "C": 0.45835831409153266
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.95,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Civil",
+     "score": 0.89,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería Civil, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.89,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.30333169685166655,
+    "I": 0.24384551251782693,
+    "A": 0.1617332253974428,
+    "S": 0.19750107999580455,
+    "E": 0.16960427835245492,
+    "C": 0.2305426961126355
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.84,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Mecatrónica",
+     "score": 0.83,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería Mecatrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.81,
+     "description": "Se alinea con tus intereses Realista (R) y Investigador (I). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.3321505952380959,
+    "I": 0.9693083333333334,
+    "A": 0.4643622187904109,
+    "S": 0.08132789151637855,
+    "E": 0.09717983784835076,
+    "C": 0.1794691095640086
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Ambiental",
+     "score": 0.89,
+     "description": "Se alinea con tus intereses Investigador (I) y Artístico (A). En Ingeniería Ambiental, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Arquitectura",
+     "score": 0.88,
+     "description": "Se alinea con tus intereses Investigador (I) y Artístico (A). En Arquitectura, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Arquitectura"
+    },
+    {
+     "career": "Biología",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Investigador (I) y Artístico (A). En Biología, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Ciencias de la Salud"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.1017869886935144,
+    "I": 0.10530706528151174,
+    "A": 0.18404969809098595,
+    "S": 0.2888034844520683,
+    "E": 0.14655052552021686,
+    "C": 0.1553724445721173
+   },
+   "top_careers": [
+    {
+     "career": "Educación y Gestión del Aprendizaje",
+     "score": 0.86,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Educación y Gestión del Aprendizaje, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Educación"
+    },
+    {
+     "career": "Traducción e Interpretación Profesional",
+     "score": 0.84,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Traducción e Interpretación Profesional, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Ciencias Humanas"
+    },
+    {
+     "career": "Artes Escénicas",
+     "score": 0.84,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Artes Escénicas, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.0926700069062204,
+    "I": 0.10777964062436592,
+    "A": 0.29841948768823845,
+    "S": 0.9913333333333333,
+    "E": 0.4377931547619041,
+    "C": 0.24741482233044768
+   },
+   "top_careers": [
+    {
+     "career": "Educación y Gestión del Aprendizaje",
+     "score": 0.95,
+     "description": "Se alinea con tus intereses Social (S) y Emprendedor (E). En Educación y Gestión del Aprendizaje, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Educación"
+    },
+    {
+     "career": "Ciencias Políticas",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Social (S) y Emprendedor (E). En Ciencias Políticas, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Economía"
+    },
+    {
+     "career": "Relaciones Internacionales",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Social (S) y Emprendedor (E). En Relaciones Internacionales, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Derecho"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.5570467803030301,
+    "I": 0.23129583333333353,
+    "A": 0.12581170634920663,
+    "S": 0.16011200396825384,
+    "E": 0.16393323412698416,
+    "C": 0.3660843253968252
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Contabilidad y Administración",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Contabilidad y Administración, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Contabilidad y Finanzas",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Contabilidad y Finanzas, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.12629201989022898,
+    "I": 0.09671302879039713,
+    "A": 0.13613279208668014,
+    "S": 0.2737107150025113,
+    "E": 0.2618884870184604,
+    "C": 0.8509528993075935
+   },
+   "top_careers": [
+    {
+     "career": "Contabilidad y Administración",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Contabilidad y Administración, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Contabilidad y Finanzas",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Contabilidad y Finanzas, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Ingeniería de Sistemas de Información",
+     "score": 0.85,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Ingeniería de Sistemas de Información, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.10528827283837526,
+    "I": 0.19353953634304052,
+    "A": 0.5669546071374701,
+    "S": 0.30285149007015294,
+    "E": 0.11839657504466215,
+    "C": 0.1407402120339771
+   },
+   "top_careers": [
+    {
+     "career": "Música",
+     "score": 0.97,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Música, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Traducción e Interpretación Profesional",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Traducción e Interpretación Profesional, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Ciencias Humanas"
+    },
+    {
+     "career": "Artes Escénicas",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Artes Escénicas, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.6139249999999994,
+    "I": 0.19128988095238125,
+    "A": 0.14971011904761924,
+    "S": 0.24062857142857172,
+    "E": 0.08448928571428578,
+    "C": 0.23736666666666698
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Mecatrónica",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Realista (R) y Social (S). En Ingeniería Mecatrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Realista (R) y Social (S). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.85,
+     "description": "Se alinea con tus intereses Realista (R) y Social (S). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.15147920458017192,
+    "I": 0.11161658828737181,
+    "A": 0.17354234205337163,
+    "S": 0.26772662815126014,
+    "E": 0.3310183119465721,
+    "C": 0.21071608654685503
+   },
+   "top_careers": [
+    {
+     "career": "Administración",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Social (S). En Administración, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración y Recursos Humanos",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Social (S). En Administración y Recursos Humanos, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración y Negocios Internacionales",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Social (S). En Administración y Negocios Internacionales, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.08593869047619063,
+    "I": 0.14106964285714316,
+    "A": 0.4302241071428569,
+    "S": 0.46910373376623293,
+    "E": 0.1036571428571431,
+    "C": 0.11113392857142879
+   },
+   "top_careers": [
+    {
+     "career": "Música",
+     "score": 0.96,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Música, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Traducción e Interpretación Profesional",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Traducción e Interpretación Profesional, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Ciencias Humanas"
+    },
+    {
+     "career": "Artes Escénicas",
+     "score": 0.94,
+     "description": "Se alinea con tus intereses Social (S) y Artístico (A). En Artes Escénicas, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.10221754424906995,
+    "I": 0.2638446635528121,
+    "A": 0.19372668799922582,
+    "S": 0.28755348445206835,
+    "E": 0.1902276103993813,
+    "C": 0.1621256801499453
+   },
+   "top_careers": [
+    {
+     "career": "Enfermería",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Social (S) y Investigador (I). En Enfermería, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ciencias de la Salud"
+    },
+    {
+     "career": "Psicología",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Social (S) y Investigador (I). En Psicología, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Psicología"
+    },
+    {
+     "career": "Terapia Física",
+     "score": 0.87,
+     "description": "Se alinea con tus intereses Social (S) y Investigador (I). En Terapia Física, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ciencias de la Salud"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.19357931878862508,
+    "I": 0.1052880287269893,
+    "A": 0.16207966908617433,
+    "S": 0.2735460560961106,
+    "E": 0.23601835751203812,
+    "C": 0.6823548728865231
+   },
+   "top_careers": [
+    {
+     "career": "Contabilidad y Finanzas",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Contabilidad y Finanzas, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Contabilidad y Administración",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Contabilidad y Administración, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta proyectos prácticos y resultados tangibles desde Realista (R).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Ingeniería de Sistemas de Información",
+     "score": 0.84,
+     "description": "Se alinea con tus intereses Convencional (C) y Social (S). En Ingeniería de Sistemas de Información, el enfoque Convencional (C) favorece organización, planificación y seguimiento de procesos. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.10724630860396321,
+    "I": 0.31463735314951724,
+    "A": 0.9570421765197308,
+    "S": 0.41428609684590645,
+    "E": 0.12151156213280291,
+    "C": 0.10851356023456
+   },
+   "top_careers": [
+    {
+     "career": "Música",
+     "score": 0.98,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Música, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Artes Escénicas",
+     "score": 0.93,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Artes Escénicas, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Traducción e Interpretación Profesional",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Artístico (A) y Social (S). En Traducción e Interpretación Profesional, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Ciencias Humanas"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.0829655156836361,
+    "I": 0.07401234660012354,
+    "A": 0.10073060022085768,
+    "S": 0.3402461636814174,
+    "E": 0.9062187499999999,
+    "C": 0.43524583333333255
+   },
+   "top_careers": [
+    {
+     "career": "Administración y Gerencia del Emprendimiento",
+     "score": 0.96,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración y Gerencia del Emprendimiento, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración y Ciencia de Datos para Negocios ",
+     "score": 0.96,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración y Ciencia de Datos para Negocios , el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    },
+    {
+     "career": "Administración",
+     "score": 0.96,
+     "description": "Se alinea con tus intereses Emprendedor (E) y Convencional (C). En Administración, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Negocios"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.15692757936507964,
+    "I": 0.2594005952380954,
+    "A": 0.699516765873017,
+    "S": 0.2870361291486295,
+    "E": 0.12629345238095244,
+    "C": 0.2872606150793646
+   },
+   "top_careers": [
+    {
+     "career": "Traducción e Interpretación Profesional",
+     "score": 0.93,
+     "description": "Se alinea con tus intereses Artístico (A) y Convencional (C). En Traducción e Interpretación Profesional, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Ciencias Humanas"
+    },
+    {
+     "career": "Música",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Artístico (A) y Convencional (C). En Música, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    },
+    {
+     "career": "Artes Escénicas",
+     "score": 0.88,
+     "description": "Se alinea con tus intereses Artístico (A) y Convencional (C). En Artes Escénicas, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Artes Contemporáneas"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.9337625000000002,
+    "I": 0.22795502014141897,
+    "A": 0.12558403243607405,
+    "S": 0.1970676470588234,
+    "E": 0.14306669955815796,
+    "C": 0.28093590553378556
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.92,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Mecatrónica",
+     "score": 0.9,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería Mecatrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.88,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 1.0,
+    "I": 0.0,
+    "A": 0.0,
+    "S": 0.0,
+    "E": 0.0,
+    "C": 0.0
+   },
+   "top_careers": [
+    {
+     "career": "Ingeniería de Gestión Minera",
+     "score": 0.78,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería de Gestión Minera, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Electrónica",
+     "score": 0.78,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería Electrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    },
+    {
+     "career": "Ingeniería Mecatrónica",
+     "score": 0.78,
+     "description": "Se alinea con tus intereses Realista (R) y Convencional (C). En Ingeniería Mecatrónica, el enfoque Realista (R) favorece proyectos prácticos y resultados tangibles. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.5,
+    "I": 0.5,
+    "A": 0.5,
+    "S": 0.5,
+    "E": 0.5,
+    "C": 0.5
+   },
+   "top_careers": [
+    {
+     "career": "Psicología",
+     "score": 0.71,
+     "description": "Se alinea con tus intereses Convencional (C) y Emprendedor (E). En Psicología, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Psicología"
+    },
+    {
+     "career": "Comunicación Audiovisual y Medios Interactivos",
+     "score": 0.71,
+     "description": "Se alinea con tus intereses Convencional (C) y Emprendedor (E). En Comunicación Audiovisual y Medios Interactivos, el enfoque Artístico (A) favorece creación y diseño de soluciones creativas. También aporta liderazgo, negociación y dirección de iniciativas desde Emprendedor (E).",
+     "faculty": "Comunicaciones"
+    },
+    {
+     "career": "Economía y Ciencia de Datos",
+     "score": 0.71,
+     "description": "Se alinea con tus intereses Convencional (C) y Emprendedor (E). En Economía y Ciencia de Datos, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta organización, planificación y seguimiento de procesos desde Convencional (C).",
+     "faculty": "Economía"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.1,
+    "I": 0.9,
+    "A": 0.3,
+    "S": 0.2,
+    "E": 0.4,
+    "C": 0.6
+   },
+   "top_careers": [
+    {
+     "career": "Economía y Finanzas",
+     "score": 0.97,
+     "description": "Se alinea con tus intereses Investigador (I) y Convencional (C). En Economía y Finanzas, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta organización, planificación y seguimiento de procesos desde Convencional (C).",
+     "faculty": "Economía"
+    },
+    {
+     "career": "Economía y Negocios Internacionales",
+     "score": 0.97,
+     "description": "Se alinea con tus intereses Investigador (I) y Convencional (C). En Economía y Negocios Internacionales, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta organización, planificación y seguimiento de procesos desde Convencional (C).",
+     "faculty": "Economía"
+    },
+    {
+     "career": "Ingeniería Industrial",
+     "score": 0.97,
+     "description": "Se alinea con tus intereses Investigador (I) y Convencional (C). En Ingeniería Industrial, el enfoque Investigador (I) favorece análisis y resolución de problemas complejos. También aporta organización, planificación y seguimiento de procesos desde Convencional (C).",
+     "faculty": "Ingeniería"
+    }
+   ]
+  },
+  {
+   "profile": {
+    "R": 0.75,
+    "I": 0.25,
+    "A": 0.0,
+    "S": 1.0,
+    "E": 0.5,
+    "C": 0.125
+   },
+   "top_careers": [
+    {
+     "career": "Hotelería y Administración",
+     "score": 0.86,
+     "description": "Se alinea con tus intereses Social (S) y Realista (R). En Hotelería y Administración, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Administración en Hotelería y Turismo"
+    },
+    {
+     "career": "Turismo y Administración",
+     "score": 0.86,
+     "description": "Se alinea con tus intereses Social (S) y Realista (R). En Turismo y Administración, el enfoque Emprendedor (E) favorece liderazgo, negociación y dirección de iniciativas. También aporta comunicación y trabajo colaborativo desde Social (S).",
+     "faculty": "Administración en Hotelería y Turismo"
+    },
+    {
+     "career": "Ciencias de la Actividad Física y el Deporte",
+     "score": 0.85,
+     "description": "Se alinea con tus intereses Social (S) y Realista (R). En Ciencias de la Actividad Física y el Deporte, el enfoque Social (S) favorece comunicación y trabajo colaborativo. También aporta análisis y resolución de problemas complejos desde Investigador (I).",
+     "faculty": "Ciencias de la Salud"
+    }
+   ]
+  }
+ ]
+}

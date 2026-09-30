@@ -1,71 +1,81 @@
-# Kairos — API
+# Kairos — Backend
 
-API REST para la plataforma de orientación vocacional Kairos. Evalúa los intereses, habilidades y valores de estudiantes mediante el modelo RIASEC y recomienda carreras profesionales usando Machine Learning e inteligencia artificial generativa.
-
----
-
-## ¿Qué hace?
-
-- Gestiona sesiones de chat en dos modos: **guiado** (preguntas estructuradas) y **abierto** (conversación libre con IA).
-- En el modo abierto, utiliza **Google Gemini** para generar preguntas de seguimiento naturales y detectar señales vocacionales en el texto.
-- Analiza las respuestas con un modelo ML (TF-IDF + RIASEC) y genera scores para los seis perfiles Holland (R, I, A, S, E, C).
-- Recomienda las tres carreras más afines usando similitud de coseno contra una base de datos de carreras.
-- Provee paneles diferenciados para **estudiantes**, **evaluadores** y **administradores**.
-- Envía correos para recuperación de contraseña vía SMTP.
-
----
+API REST de la plataforma de orientación vocacional Kairos: test RIASEC guiado y chat
+abierto con IA generativa, perfilado con Machine Learning y recomendación de carreras.
 
 ## Stack
 
 | Área | Tecnología |
 |---|---|
-| Framework | FastAPI 0.115 + Uvicorn |
-| Lenguaje | Python 3.11+ |
-| Base de datos | PostgreSQL + SQLAlchemy 2 + Alembic |
-| Autenticación | JWT (python-jose) + bcrypt |
-| Machine Learning | scikit-learn, TF-IDF, cosine similarity |
-| IA Generativa | Google Gemini (google-genai SDK) |
-| Validación | Pydantic v2 |
-| Email | SMTP |
+| Lenguaje | Python 3.14 |
+| Gestor de paquetes | uv |
+| Framework | FastAPI + Pydantic v2 |
+| Base de datos | PostgreSQL 18 · SQLAlchemy 2.1 · psycopg 3 · Alembic |
+| Seguridad | PyJWT (HS256) · pwdlib (Argon2) |
+| Machine Learning | scikit-learn (TF-IDF + RandomForest multi-salida, pipeline v8) · numpy |
+| IA generativa | DeepSeek y Gemini en cadena configurable, con respaldo predefinido |
+| Email | Resend |
+| Calidad | ruff · pytest |
 
----
+## Estructura
 
-## Módulos principales
-
-- **Auth** — Registro, login, JWT y recuperación de contraseña por email.
-- **Chat** — Creación y gestión de sesiones, flujo conversacional (guiado y abierto) y obtención de resultados.
-- **Students** — Perfil del estudiante, historial de evaluaciones y feedback sobre resultados.
-- **Evaluators** — Revisión de evaluaciones asignadas y adición de comentarios.
-- **Admin** — Gestión completa de usuarios y asignación de estudiantes a evaluadores.
-- **Recommendation** — Generación de recomendaciones de carrera a partir del test o del texto del chat.
-
----
-
-## Configuración local
-
-```bash
-# Crear entorno virtual e instalar dependencias
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar DATABASE_URL, SECRET_KEY, GEMINI_API_KEY, etc.
-
-# Iniciar servidor
-uvicorn app.main:app --reload
+```
+src/backend/
+├── main.py            # create_app, CORS, routers, /health
+├── core/              # configuración, base de datos, seguridad, excepciones
+├── api/deps.py        # usuario actual y control de acceso por rol
+├── modules/           # auth, users, students, evaluators, admin, assignments,
+│                      # evaluations, feedback, chat, recommendation
+├── ml/                # carga de artefactos, perfilado RIASEC, recomendador
+├── conversation/      # prompts y heurísticas del chat abierto
+├── integrations/      # proveedores LLM (DeepSeek, Gemini) y email
+└── seeds/             # administradores y 36 preguntas RIASEC
+migrations/            # Alembic
+artifacts/             # pipeline v8 (.joblib) y catálogo de carreras (.json)
+tests/
 ```
 
-La documentación interactiva estará disponible en `/docs` una vez iniciado el servidor.
+## Requisitos
 
----
+- Python 3.14
+- [uv](https://docs.astral.sh/uv/)
+- PostgreSQL 18
 
-## Variables de entorno requeridas
+## Puesta en marcha
 
-```env
-DATABASE_URL=postgresql+psycopg://user:password@host:5432/db
-SECRET_KEY=tu_clave_secreta
-GEMINI_API_KEY=tu_api_key_de_google
-FRONTEND_URL=http://localhost:3000
+```powershell
+uv sync
+Copy-Item .env.example .env
+uv run alembic upgrade head
+uv run python -m backend.seeds
+uv run fastapi dev
 ```
+
+- API: http://127.0.0.1:8000
+- Documentación interactiva: http://127.0.0.1:8000/docs
+
+## Comandos
+
+| Tarea | Comando |
+|---|---|
+| Servidor de desarrollo | `uv run fastapi dev` |
+| Servidor de producción | `uv run fastapi run` |
+| Aplicar migraciones | `uv run alembic upgrade head` |
+| Crear migración | `uv run alembic revision --autogenerate -m "descripcion"` |
+| Cargar seeds | `uv run python -m backend.seeds` |
+| Pruebas | `uv run pytest` |
+| Lint | `uv run ruff check .` |
+| Formato | `uv run ruff format .` |
+
+Las pruebas usan una base separada (`db_kairos_test`) que se crea sola y nunca llaman a
+las APIs de IA.
+
+## Roles
+
+| Rol | Prefijo | Funciones |
+|---|---|---|
+| Estudiante | `/students`, `/chat` | Perfil, test guiado, chat abierto, resultados y feedback |
+| Evaluador | `/evaluator` | Estudiantes asignados, sus evaluaciones, resultados y comentarios |
+| Administrador | `/admin` | Usuarios, asignaciones y feedback |
+
+Autenticación: `POST /token` (OAuth2 password) y `POST /signup`.

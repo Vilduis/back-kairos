@@ -1,6 +1,18 @@
-# Backend ignores
-.env
-.env.local
-.venv/
+# Python-generated files
 __pycache__/
-*.pyc
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environment
+.env
+
+# Local
+CLAUDE.md
+.pytest_cache/
+.ruff_cache/
