@@ -63,7 +63,7 @@ class TestCreateUser:
         response = client.post("/admin/users", json=NEW_USER, headers=headers)
 
         assert response.status_code == 400
-        assert response.json() == {"detail": "Email ya registrado"}
+        assert response.json() == {"detail": "Este correo ya está registrado"}
 
     def test_reactivates_deactivated_account(
         self, client: TestClient, headers: dict, create_user: UserFactory
@@ -179,7 +179,7 @@ class TestUpdateUser:
         )
 
         assert response.status_code == 400
-        assert response.json() == {"detail": "Email ya registrado"}
+        assert response.json() == {"detail": "Este correo ya está registrado"}
 
     def test_changes_student_state_with_unchanged_profile(
         self, client: TestClient, headers: dict, create_user: UserFactory

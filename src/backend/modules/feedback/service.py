@@ -1,9 +1,11 @@
+from collections.abc import Sequence
+
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from backend.core.exceptions import NotFoundError
 from backend.modules.evaluations.service import get_student_evaluation
-from backend.modules.feedback.models import StudentFeedback
+from backend.modules.feedback.models import EvaluatorComment, StudentFeedback
 from backend.modules.feedback.schemas import FeedbackCommentUpdate, FeedbackSubmit
 
 
@@ -50,3 +52,20 @@ def update_feedback_comment(
     feedback.comment = data.comment
     session.commit()
     return feedback
+
+
+def list_evaluation_comments(session: Session, evaluation_id: int) -> Sequence[EvaluatorComment]:
+    statement = (
+        select(EvaluatorComment)
+        .options(joinedload(EvaluatorComment.evaluator))
+        .where(EvaluatorComment.evaluation_id == evaluation_id)
+        .order_by(EvaluatorComment.created_at.desc(), EvaluatorComment.comment_id.desc())
+    )
+    return session.scalars(statement).all()
+
+
+def list_student_comments(
+    session: Session, evaluation_id: int, student_id: int
+) -> Sequence[EvaluatorComment]:
+    get_student_evaluation(session, evaluation_id, student_id)
+    return list_evaluation_comments(session, evaluation_id)

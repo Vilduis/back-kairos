@@ -7,7 +7,7 @@ from backend.core.security import hash_password
 from backend.modules.users.models import User
 from backend.modules.users.schemas import AccountCreate, ProfileUpdate
 
-EMAIL_TAKEN = "Email ya registrado"
+EMAIL_TAKEN = "Este correo ya está registrado"
 
 
 def find_user_by_email(session: Session, email: str) -> User | None:

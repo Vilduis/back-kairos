@@ -10,6 +10,7 @@ from backend.modules.evaluations.models import Evaluation, EvaluationResult
 from backend.modules.evaluations.service import get_evaluation, get_result, list_student_evaluations
 from backend.modules.feedback.models import EvaluatorComment
 from backend.modules.feedback.schemas import EvaluatorCommentCreate
+from backend.modules.feedback.service import list_evaluation_comments
 from backend.modules.users.models import User
 
 
@@ -63,9 +64,4 @@ def list_comments(
     session: Session, evaluator: User, evaluation_id: int
 ) -> Sequence[EvaluatorComment]:
     evaluation = get_accessible_evaluation(session, evaluator, evaluation_id)
-    statement = (
-        select(EvaluatorComment)
-        .where(EvaluatorComment.evaluation_id == evaluation.evaluation_id)
-        .order_by(EvaluatorComment.created_at.desc(), EvaluatorComment.comment_id.desc())
-    )
-    return session.scalars(statement).all()
+    return list_evaluation_comments(session, evaluation.evaluation_id)

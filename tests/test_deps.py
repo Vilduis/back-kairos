@@ -75,6 +75,7 @@ def test_rejects_missing_or_invalid_token(
     response = protected_client.get("/student", headers=headers)
 
     assert response.status_code == 401
+    assert response.json() == {"detail": "Credenciales de autenticación inválidas"}
 
 
 def test_rejects_deactivated_user(protected_client: TestClient, create_user: UserFactory) -> None:

@@ -1,9 +1,12 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import CheckConstraint, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.core.database import Base, CreatedAt, IntPk, cascade_fk
+
+if TYPE_CHECKING:
+    from backend.modules.users.models import User
 
 
 class StudentFeedback(Base):
@@ -30,3 +33,5 @@ class EvaluatorComment(Base):
     evaluator_id: Mapped[int] = cascade_fk("users.user_id")
     comment_text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[CreatedAt]
+
+    evaluator: Mapped[User] = relationship()

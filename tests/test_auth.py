@@ -39,7 +39,7 @@ class TestSignup:
         response = client.post("/signup", json=SIGNUP_PAYLOAD)
 
         assert response.status_code == 400
-        assert response.json() == {"detail": "Email ya registrado"}
+        assert response.json() == {"detail": "Este correo ya está registrado"}
 
     def test_reactivates_deactivated_account(
         self, client: TestClient, create_user: UserFactory

@@ -52,7 +52,7 @@ def test_rejects_email_of_another_user(client: TestClient, create_user: UserFact
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "Email ya registrado"}
+    assert response.json() == {"detail": "Este correo ya está registrado"}
 
 
 def test_keeps_own_email(client: TestClient, create_user: UserFactory) -> None:

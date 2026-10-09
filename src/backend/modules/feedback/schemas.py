@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
 Rating = Field(ge=1, le=5)
 
@@ -45,5 +45,15 @@ class EvaluatorCommentRead(BaseModel):
     comment_id: int
     evaluation_id: int
     evaluator_id: int
+    comment_text: str
+    created_at: datetime
+
+
+class ReceivedCommentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    comment_id: int
+    evaluation_id: int
+    evaluator_name: str = Field(validation_alias=AliasPath("evaluator", "full_name"))
     comment_text: str
     created_at: datetime

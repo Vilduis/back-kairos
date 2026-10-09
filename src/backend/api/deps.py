@@ -11,7 +11,7 @@ from backend.core.security import decode_access_token
 from backend.ml.artifacts import ModelArtifacts, get_model_artifacts
 from backend.modules.users.models import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 ROLE_DENIED_MESSAGES = {
     UserRole.STUDENT: "Acceso solo para estudiantes",
@@ -20,8 +20,10 @@ ROLE_DENIED_MESSAGES = {
 }
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: SessionDep) -> User:
-    subject = decode_access_token(token)
+def get_current_user(
+    token: Annotated[str | None, Depends(oauth2_scheme)], session: SessionDep
+) -> User:
+    subject = decode_access_token(token) if token else None
     user = session.get(User, int(subject)) if subject and subject.isdigit() else None
     if user is None or not user.is_active:
         raise AuthenticationError("Credenciales de autenticación inválidas")

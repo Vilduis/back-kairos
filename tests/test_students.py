@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -5,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.core.enums import UserRole
-from backend.modules.feedback.models import StudentFeedback
+from backend.modules.feedback.models import EvaluatorComment, StudentFeedback
 from tests.conftest import EvaluationFactory, UserFactory, auth_headers
 
 DIMENSIONS = {"ease_of_use": 5, "clarity": 4, "usefulness": 5, "interaction": 3, "satisfaction": 4}
@@ -13,6 +14,10 @@ DIMENSIONS = {"ease_of_use": 5, "clarity": 4, "usefulness": 5, "interaction": 3,
 
 def feedback_path(evaluation_id: int) -> str:
     return f"/students/evaluations/{evaluation_id}/feedback"
+
+
+def comments_path(evaluation_id: int) -> str:
+    return f"/students/evaluations/{evaluation_id}/comments"
 
 
 def feedback_payload(*, rating: int = 4, comment: str | None = None) -> dict[str, Any]:
@@ -166,5 +171,71 @@ def test_evaluator_cannot_submit_feedback(
         json=feedback_payload(),
         headers=auth_headers(evaluator),
     )
+
+    assert response.status_code == 403
+
+
+def test_lists_evaluator_comments_newest_first(
+    client: TestClient,
+    session: Session,
+    create_user: UserFactory,
+    create_evaluation: EvaluationFactory,
+) -> None:
+    student = create_user()
+    evaluator = create_user(email="evaluador@kairos.dev", role=UserRole.EVALUATOR)
+    evaluation = create_evaluation(student)
+    now = datetime.now(UTC)
+    session.add_all(
+        EvaluatorComment(
+            evaluation_id=evaluation.evaluation_id,
+            evaluator_id=evaluator.user_id,
+            comment_text=text,
+            created_at=now - timedelta(minutes=age),
+        )
+        for text, age in [("antiguo", 10), ("reciente", 1)]
+    )
+    session.flush()
+
+    response = client.get(comments_path(evaluation.evaluation_id), headers=auth_headers(student))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["comment_text"] for item in body] == ["reciente", "antiguo"]
+    assert body[0]["evaluator_name"] == evaluator.full_name
+    assert "evaluator_id" not in body[0]
+
+
+def test_lists_no_comments(
+    client: TestClient, create_user: UserFactory, create_evaluation: EvaluationFactory
+) -> None:
+    student = create_user()
+    evaluation = create_evaluation(student)
+
+    response = client.get(comments_path(evaluation.evaluation_id), headers=auth_headers(student))
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_rejects_comments_of_another_student(
+    client: TestClient, create_user: UserFactory, create_evaluation: EvaluationFactory
+) -> None:
+    evaluation = create_evaluation(create_user(email="duenio@kairos.dev"))
+
+    response = client.get(
+        comments_path(evaluation.evaluation_id), headers=auth_headers(create_user())
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Evaluación no encontrada"}
+
+
+def test_evaluator_cannot_use_student_comments_endpoint(
+    client: TestClient, create_user: UserFactory, create_evaluation: EvaluationFactory
+) -> None:
+    evaluation = create_evaluation(create_user())
+    evaluator = create_user(email="evaluador@kairos.dev", role=UserRole.EVALUATOR)
+
+    response = client.get(comments_path(evaluation.evaluation_id), headers=auth_headers(evaluator))
 
     assert response.status_code == 403
