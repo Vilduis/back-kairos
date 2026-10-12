@@ -1,9 +1,15 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, StringConstraints
 
 from backend.core.enums import UserRole
-from backend.modules.users.schemas import Password
+from backend.modules.users.schemas import AccountCreate, Password
+
+
+class StudentSignup(AccountCreate):
+    access_code: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)
+    ]
 
 
 class TokenUser(BaseModel):

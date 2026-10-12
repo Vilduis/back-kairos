@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     password_reset_path: str = "/reset-password"
     resend_api_key: str | None = None
     resend_from: str = "Kairos <noreply@vilduis.com>"
+    contact_email: EmailStr = "kairosejemplo@gmail.com"
 
     model_artifacts_dir: Path = Path("artifacts")
 

@@ -4,18 +4,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
 from backend.core.database import SessionDep
-from backend.core.enums import UserRole
 from backend.core.schemas import Message
 from backend.integrations.email import send_password_reset_email
 from backend.modules.auth import service
 from backend.modules.auth.schemas import (
     PasswordResetConfirm,
     PasswordResetRequest,
+    StudentSignup,
     TokenResponse,
 )
-from backend.modules.users import service as users_service
 from backend.modules.users.models import User
-from backend.modules.users.schemas import AccountCreate, UserRead
+from backend.modules.users.schemas import UserRead
 
 router = APIRouter(tags=["authentication"])
 
@@ -28,8 +27,8 @@ def login(
 
 
 @router.post("/signup", response_model=UserRead)
-def signup(data: AccountCreate, session: SessionDep) -> User:
-    return users_service.create_account(session, data, UserRole.STUDENT)
+def signup(data: StudentSignup, session: SessionDep) -> User:
+    return service.signup(session, data)
 
 
 @router.post("/password-reset/request")

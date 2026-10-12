@@ -12,7 +12,7 @@ from backend.core.enums import (
     MessageType,
     SessionStatus,
 )
-from backend.core.exceptions import NotFoundError
+from backend.core.exceptions import DomainError, NotFoundError
 from backend.ml.artifacts import ModelArtifacts
 from backend.modules.chat.models import ChatMessage, ChatSession
 from backend.modules.chat.schemas import (
@@ -33,6 +33,8 @@ from backend.modules.chat.service import (
 from backend.modules.evaluations.models import EvaluationResult, Question, UserAnswer
 from backend.modules.evaluations.results import generate_result
 from backend.modules.evaluations.service import EVALUATION_NOT_FOUND, get_result
+
+SESSION_COMPLETED = "La evaluación ya terminó; sus respuestas no se pueden cambiar"
 
 
 def create_session(session: Session, student_id: int, data: ChatSessionCreate) -> ChatSession:
@@ -80,45 +82,84 @@ def _guided_questions(session: Session) -> Sequence[Question]:
     return session.scalars(statement).all()
 
 
-def _answered_question_ids(session: Session, chat_session: ChatSession) -> set[int]:
+def _ensure_in_progress(chat_session: ChatSession) -> None:
+    if chat_session.status == SessionStatus.COMPLETED:
+        raise DomainError(SESSION_COMPLETED)
+
+
+def _selected_value(selected_options: dict | None) -> int | None:
+    selected = (selected_options or {}).get("selected") or []
+    return selected[0] if selected else None
+
+
+def _selected_answers(session: Session, chat_session: ChatSession) -> dict[int, int | None]:
     if chat_session.evaluation is None:
-        return set()
-    statement = select(UserAnswer.question_id).where(
+        return {}
+    statement = select(UserAnswer.question_id, UserAnswer.selected_options).where(
         UserAnswer.evaluation_id == chat_session.evaluation.evaluation_id
     )
-    return set(session.scalars(statement))
+    return {
+        question_id: _selected_value(options) for question_id, options in session.execute(statement)
+    }
 
 
-def _guided_progress(session: Session, answered_ids: set[int]) -> GuidedProgress:
+def _guided_progress(
+    session: Session, answers: dict[int, int | None], position: int | None = None
+) -> GuidedProgress:
     questions = _guided_questions(session)
     if not questions:
         raise NotFoundError("No hay preguntas configuradas")
-    pending = next((q for q in questions if q.question_id not in answered_ids), None)
+    first_pending = next(
+        (index for index, q in enumerate(questions) if q.question_id not in answers),
+        len(questions),
+    )
+    if position is not None and position > min(first_pending, len(questions) - 1):
+        raise NotFoundError("Pregunta no encontrada")
+    index = first_pending if position is None else position
+    question = questions[index] if index < len(questions) else None
     return GuidedProgress(
-        completed=pending is None,
-        question=QuestionRead.model_validate(pending) if pending else None,
+        completed=question is None,
+        question=QuestionRead.model_validate(question) if question else None,
         total=len(questions),
-        answered=sum(q.question_id in answered_ids for q in questions),
+        answered=sum(q.question_id in answers for q in questions),
+        position=index,
+        selected=answers.get(question.question_id) if question else None,
     )
 
 
-def first_guided_question(session: Session) -> GuidedProgress:
-    return _guided_progress(session, answered_ids=set())
-
-
-def next_guided_question(session: Session, session_id: int, student_id: int) -> GuidedProgress:
-    chat_session = get_student_session(session, session_id, student_id, mode=ChatMode.GUIDED)
-    progress = _guided_progress(session, _answered_question_ids(session, chat_session))
+def _track_current_question(
+    session: Session, chat_session: ChatSession, progress: GuidedProgress
+) -> GuidedProgress:
     if progress.question is not None:
         chat_session.current_question_id = progress.question.question_id
         session.commit()
     return progress
 
 
+def first_guided_question(session: Session) -> GuidedProgress:
+    return _guided_progress(session, answers={})
+
+
+def next_guided_question(session: Session, session_id: int, student_id: int) -> GuidedProgress:
+    chat_session = get_student_session(session, session_id, student_id, mode=ChatMode.GUIDED)
+    progress = _guided_progress(session, _selected_answers(session, chat_session))
+    return _track_current_question(session, chat_session, progress)
+
+
+def guided_question_at(
+    session: Session, session_id: int, student_id: int, position: int
+) -> GuidedProgress:
+    chat_session = get_student_session(session, session_id, student_id, mode=ChatMode.GUIDED)
+    _ensure_in_progress(chat_session)
+    progress = _guided_progress(session, _selected_answers(session, chat_session), position)
+    return _track_current_question(session, chat_session, progress)
+
+
 def save_answer(
     session: Session, session_id: int, student_id: int, data: SessionAnswerCreate
 ) -> UserAnswer:
     chat_session = get_student_session(session, session_id, student_id)
+    _ensure_in_progress(chat_session)
     if session.get(Question, data.question_id) is None:
         raise NotFoundError("Pregunta no encontrada")
     evaluation = ensure_evaluation(session, chat_session)

@@ -10,10 +10,9 @@ from backend.core.exceptions import register_exception_handlers
 from backend.ml.artifacts import get_model_artifacts
 from backend.modules.admin.router import router as admin_router
 from backend.modules.auth.router import router as auth_router
-from backend.modules.chat.open_router import router as open_chat_router
 from backend.modules.chat.router import router as chat_router
+from backend.modules.contact.router import router as contact_router
 from backend.modules.evaluators.router import router as evaluators_router
-from backend.modules.recommendation.router import router as recommendation_router
 from backend.modules.students.router import router as students_router
 
 
@@ -39,9 +38,8 @@ def create_app() -> FastAPI:
         students_router,
         evaluators_router,
         admin_router,
-        recommendation_router,
         chat_router,
-        open_chat_router,
+        contact_router,
     ):
         app.include_router(router)
 

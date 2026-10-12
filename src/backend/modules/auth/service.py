@@ -4,6 +4,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from backend.core.config import get_settings
+from backend.core.enums import UserRole
 from backend.core.exceptions import AuthenticationError, DomainError, PermissionDeniedError
 from backend.core.security import (
     DUMMY_PASSWORD_HASH,
@@ -13,10 +14,12 @@ from backend.core.security import (
     hash_url_token,
     verify_password,
 )
+from backend.modules.access_codes.service import evaluator_for, redeem_code
+from backend.modules.assignments.models import EvaluatorAssignment
 from backend.modules.auth.models import PasswordReset
-from backend.modules.auth.schemas import TokenResponse, TokenUser
+from backend.modules.auth.schemas import StudentSignup, TokenResponse, TokenUser
 from backend.modules.users.models import User
-from backend.modules.users.service import find_user_by_email
+from backend.modules.users.service import create_account, find_user_by_email
 
 
 def login(session: Session, email: str, password: str) -> TokenResponse:
@@ -35,6 +38,16 @@ def login(session: Session, email: str, password: str) -> TokenResponse:
         access_token=create_access_token(str(user.user_id)),
         user=TokenUser.model_validate(user),
     )
+
+
+def signup(session: Session, data: StudentSignup) -> User:
+    access_code = redeem_code(session, data.access_code)
+    student = create_account(session, data, UserRole.STUDENT, school_id=access_code.school_id)
+    evaluator = evaluator_for(access_code)
+    if evaluator is not None:
+        session.add(EvaluatorAssignment(evaluator_id=evaluator.user_id, student_id=student.user_id))
+    session.commit()
+    return student
 
 
 def create_password_reset_token(session: Session, email: str) -> str | None:

@@ -36,7 +36,7 @@ class StudentFeedbackRead(BaseModel):
 
 
 class EvaluatorCommentCreate(BaseModel):
-    comment_text: str = Field(min_length=1)
+    comment_text: str = Field(min_length=1, max_length=2000)
 
 
 class EvaluatorCommentRead(BaseModel):

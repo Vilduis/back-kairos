@@ -9,7 +9,7 @@ from backend.conversation.heuristics import (
     is_task_request,
 )
 from backend.core.enums import MessageType
-from backend.core.text import normalize_text
+from backend.core.text import join_words, normalize_text
 from backend.integrations.llm import generate_text
 
 
@@ -218,18 +218,12 @@ def _closing_topics(texts: Sequence[str]) -> list[str]:
     return topics
 
 
-def _join_topics(topics: Sequence[str]) -> str:
-    if len(topics) == 1:
-        return topics[0]
-    return f"{', '.join(topics[:-1])} y {topics[-1]}"
-
-
 def _fallback_closing(texts: Sequence[str], first_name: str) -> str:
     name_prefix = f"{first_name}, " if first_name else ""
     topics = _closing_topics(texts)
     if topics:
         return (
-            f"¡{name_prefix}con lo que me contaste sobre {_join_topics(topics)} ya tengo "
+            f"¡{name_prefix}con lo que me contaste sobre {join_words(topics)} ya tengo "
             "suficiente para estimar tu perfil. ¿Te muestro tus carreras recomendadas? "
             "Responde 'sí' o 'no'."
         )

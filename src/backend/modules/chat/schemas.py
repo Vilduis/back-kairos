@@ -65,6 +65,8 @@ class GuidedProgress(BaseModel):
     question: QuestionRead | None
     total: int
     answered: int
+    position: int
+    selected: int | None = None
 
 
 class SelectedOptions(BaseModel):

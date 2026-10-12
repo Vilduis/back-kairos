@@ -9,6 +9,10 @@ class Message(BaseModel):
     detail: str
 
 
+class Count(BaseModel):
+    total: int
+
+
 class Pagination(BaseModel):
     skip: int = Field(default=0, ge=0)
     limit: int = Field(default=100, ge=1, le=500)

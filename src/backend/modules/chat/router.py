@@ -1,11 +1,12 @@
 from collections.abc import Sequence
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Path
 
-from backend.api.deps import ModelArtifactsDep, StudentUser
+from backend.api.deps import ModelArtifactsDep, StudentUser, require_consent
 from backend.core.database import SessionDep
 from backend.core.schemas import Message
-from backend.modules.chat import sessions
+from backend.modules.chat import open_flow, sessions
 from backend.modules.chat.models import ChatMessage, ChatSession
 from backend.modules.chat.schemas import (
     ChatMessageCreate,
@@ -14,6 +15,7 @@ from backend.modules.chat.schemas import (
     ChatSessionRead,
     CompletionResponse,
     GuidedProgress,
+    OpenTurnResponse,
     SessionAnswerCreate,
     UserAnswerRead,
 )
@@ -21,7 +23,7 @@ from backend.modules.chat.service import get_student_session
 from backend.modules.evaluations.models import EvaluationResult, UserAnswer
 from backend.modules.evaluations.schemas import EvaluationResultRead
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(prefix="/chat", tags=["chat"], dependencies=[Depends(require_consent)])
 
 
 @router.post("/sessions", response_model=ChatSessionRead)
@@ -71,6 +73,16 @@ def next_guided_question(
     return sessions.next_guided_question(session, session_id, student.user_id)
 
 
+@router.get("/sessions/{session_id}/guided/questions/{position}", response_model=GuidedProgress)
+def guided_question_at(
+    session_id: int,
+    position: Annotated[int, Path(ge=0)],
+    student: StudentUser,
+    session: SessionDep,
+) -> GuidedProgress:
+    return sessions.guided_question_at(session, session_id, student.user_id, position)
+
+
 @router.post("/sessions/{session_id}/answers", response_model=UserAnswerRead)
 def save_answer(
     session_id: int, data: SessionAnswerCreate, student: StudentUser, session: SessionDep
@@ -90,3 +102,12 @@ def read_session_result(
     session_id: int, student: StudentUser, session: SessionDep
 ) -> EvaluationResult:
     return sessions.get_session_result(session, session_id, student.user_id)
+
+
+@router.post(
+    "/sessions/{session_id}/open/next",
+    response_model=OpenTurnResponse,
+    response_model_exclude_none=True,
+)
+def next_open_turn(session_id: int, student: StudentUser, session: SessionDep) -> OpenTurnResponse:
+    return open_flow.next_open_turn(session, student, session_id)

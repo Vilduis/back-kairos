@@ -18,7 +18,6 @@ CAREERS_FILE = "careers_db_v8_20260427.json"
 class Career:
     name: str
     faculty: str
-    code: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,10 +32,7 @@ def load_artifacts(directory: Path) -> ModelArtifacts:
         raw_careers = json.load(file)
     return ModelArtifacts(
         pipeline=joblib.load(directory / PIPELINE_FILE),
-        careers=tuple(
-            Career(name=item["name"], faculty=item["faculty"], code=item["code"])
-            for item in raw_careers
-        ),
+        careers=tuple(Career(name=item["name"], faculty=item["faculty"]) for item in raw_careers),
         career_vectors=np.array([item["riasec"] for item in raw_careers], dtype=float),
     )
 

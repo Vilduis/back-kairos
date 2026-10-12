@@ -10,8 +10,8 @@ from backend.modules.users.models import User
 from backend.modules.users.schemas import ProfileUpdate, UserRead
 
 
-def add_profile_routes(router: APIRouter, role: UserRole) -> None:
-    role_user = Depends(require_role(role))
+def add_profile_routes(router: APIRouter, *roles: UserRole) -> None:
+    role_user = Depends(require_role(*roles))
 
     @router.get("/me", response_model=UserRead)
     def read_profile(user: Annotated[User, role_user]) -> User:

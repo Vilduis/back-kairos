@@ -608,7 +608,7 @@
       0.05,
       0.05
     ],
-    "code": "IRС"
+    "code": "IRC"
   },
   {
     "name": "Administración",
@@ -637,7 +637,7 @@
     "code": "ESC"
   },
   {
-    "name": "Administración y Ciencia de Datos para Negocios ",
+    "name": "Administración y Ciencia de Datos para Negocios",
     "faculty": "Negocios",
     "riasec": [
       0.05,

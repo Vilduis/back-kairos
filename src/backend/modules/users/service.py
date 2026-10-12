@@ -15,21 +15,24 @@ def find_user_by_email(session: Session, email: str) -> User | None:
     return session.scalars(statement).one_or_none()
 
 
-def create_account(session: Session, data: AccountCreate, role: UserRole) -> User:
+def create_account(
+    session: Session, data: AccountCreate, role: UserRole, *, school_id: int | None
+) -> User:
     user = find_user_by_email(session, data.email)
-    if user is not None and user.is_active:
+    # Una cuenta dada de baja (borrado lógico) se reactiva solo dentro de su colegio:
+    # moverla a otro expondría su historial a ese colegio.
+    if user is not None and (user.is_active or user.school_id != school_id):
         raise DomainError(EMAIL_TAKEN)
 
-    # Un email de una cuenta dada de baja (borrado lógico) se reutiliza reactivándola.
     if user is None:
         user = User(email=data.email.lower())
         session.add(user)
     user.full_name = data.full_name
     user.password_hash = hash_password(data.password)
-    user.educational_institution = data.educational_institution
     user.role = role
+    user.school_id = school_id
     user.is_active = True
-    session.commit()
+    session.flush()
     return user
 
 
@@ -41,8 +44,6 @@ def apply_profile_changes(session: Session, user: User, data: ProfileUpdate) -> 
         user.email = data.email.lower()
     if data.full_name is not None:
         user.full_name = data.full_name
-    if data.educational_institution is not None:
-        user.educational_institution = data.educational_institution
 
 
 def update_profile(session: Session, user: User, data: ProfileUpdate) -> User:

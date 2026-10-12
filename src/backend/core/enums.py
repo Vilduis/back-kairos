@@ -4,6 +4,7 @@ from enum import StrEnum
 class UserRole(StrEnum):
     STUDENT = "student"
     EVALUATOR = "evaluator"
+    SCHOOL_ADMIN = "school_admin"
     ADMIN = "admin"
 
 

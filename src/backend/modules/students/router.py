@@ -13,10 +13,23 @@ from backend.modules.feedback.schemas import (
     ReceivedCommentRead,
     StudentFeedbackRead,
 )
+from backend.modules.users import consent
 from backend.modules.users.router import add_profile_routes
+from backend.modules.users.schemas import ConsentStatus
 
 router = APIRouter(prefix="/students", tags=["students"])
 add_profile_routes(router, UserRole.STUDENT)
+
+
+@router.get("/me/consent", response_model=ConsentStatus)
+def read_consent(student: StudentUser) -> ConsentStatus:
+    return ConsentStatus(accepted=consent.has_current_consent(student))
+
+
+@router.post("/me/consent", response_model=ConsentStatus)
+def accept_consent(student: StudentUser, session: SessionDep) -> ConsentStatus:
+    consent.accept_consent(session, student)
+    return ConsentStatus(accepted=True)
 
 
 @router.post("/evaluations/{evaluation_id}/feedback", response_model=StudentFeedbackRead)
